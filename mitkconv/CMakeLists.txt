@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.5)
 
-project(imgreader)
+project(mitkconv)
 
 find_package(MITK REQUIRED)
 
@@ -10,4 +10,4 @@ find_package(MITK REQUIRED)
 #endif()
 
 # Create the executable - it needs the MitkQtWidgetsExt module
-mitk_create_executable(${PROJECT_NAME} DEPENDS MitkQtWidgets)
+mitk_create_executable(${PROJECT_NAME} DEPENDS MitkSceneSerialization)
