@@ -1,6 +1,6 @@
 /*
- * $File: imgreader.cpp
- * $Date: Sat Feb 21 20:55:50 2015 +0800
+ * $File: mitkconv.cpp
+ * $Date: Sun Feb 22 21:09:44 2015 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
  */
 
@@ -11,8 +11,9 @@
 #include "mitkImageReadAccessor.h"
 
 #include <stdexcept>
-#include <cstdio>
 #include <typeinfo>
+#include <cstdlib>
+#include <cstdio>
 
 #define AUTO_DEF(name, v) \
     __typeof__(v) name = v
@@ -69,6 +70,9 @@ int main(int argc, char* argv[]) {
     FILE *fout_meta = fopen(argv[1], "w"),
          *fout_data = fopen(argv[2], "wb");
 
+    static char realpath_buf[PATH_MAX];
+    fprintf(fout_meta, "fpath_data: %s\n", realpath(argv[2], realpath_buf));
+
     for (int i = 3; i < argc; i ++) {
         const char *fname = argv[i];
         mitk::SceneIO::Pointer sceneIO = mitk::SceneIO::New();
@@ -80,7 +84,7 @@ int main(int argc, char* argv[]) {
         AUTO_DEF(pred_surface,
                 mitk::TNodePredicateDataType<mitk::Surface>::New());
 
-        fprintf(fout_meta, "file: %s\n", fname);
+        fprintf(fout_meta, "file: %s\n", realpath(fname, realpath_buf));
 
         for (__typeof__(rs->begin()) iter = rs->begin();
                 iter != rs->end(); iter ++) {
@@ -97,11 +101,12 @@ int main(int argc, char* argv[]) {
                 printf("WTF!\n");
                 return -1;
             }
-            fprintf(fout_meta, "object: %d%d %s\n",
-                    is_img, is_surface, name.c_str());
-            if (is_img)
+            if (is_img) {
+                fprintf(fout_meta, "image: %s\n", name.c_str());
                 work_on_image(fout_meta, fout_data,
                         dynamic_cast<mitk::Image*>(node->GetData()));
+                fprintf(fout_meta, "end: %s\n", name.c_str());
+            }
         }
     }
 
