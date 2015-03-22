@@ -1,5 +1,5 @@
 % $File: nasmia.tex
-% $Date: Thu Mar 12 00:00:41 2015 +0800
+% $Date: Thu Mar 12 21:08:21 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \documentclass {beamer}
@@ -36,7 +36,7 @@
 \includegraphics[width=#1\paperwidth]{#2}\end{center}}
 
 
-\title{基于深度学习的医学影像柔性配准算法研究}
+\title{基于深度学习的医学影像配准算法研究}
 \author {贾开}
 \institute {清华大学}
 \date{\today}
@@ -112,16 +112,21 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{柔性配准方法概述}
+\begin{frame}{医学影像配准方法概述}
     主要包含三个部分：
     \begin{itemize}
-        \item 柔性变形模型
-        \item \alert<2>{相似度量函数：根据关键点附近的特征值衡量图像相似性}
+        \item 变形模型(刚性，柔性，参数，非参数)
+        \item \alert<2>{相似性测度函数}
+            \begin{itemize}
+                \item \alert<2>{基于特征}
+                \item 基于灰度值
+                \item 两者混合使用
+            \end{itemize}
         \item 优化方法
     \end{itemize}
     \visible<2>{
-        本研究尝试用更好的特征实现更好的相似度量函数，
-        从而提高配准精度
+        本研究主要考虑基于特征的相似性测度函数，
+        尝试用更好的特征优化函数性能，从而提高配准精度
     }
 \end{frame}
 
@@ -129,11 +134,12 @@
 
 \begin{frame}{更好的特征}
     \begin{description}
-        \item[传统特征] \hfill \\
+        \item<+->[传统特征] \hfill \\
             SIFT, HOG, SURF, LBP, \dots \\
-            基于人的知识，\alert{人工设计} \\
-        \item<2>[深度学习] \hfill \\
-            从数据中自动发掘特征基于数据客观分布，\alert{自动发现}
+            基于人的知识，人工设计，与数据的应用域无关
+        \item<+->[深度学习] \hfill \\
+            从数据中自动发掘特征，人工引导+自动学习，可适配具体数据集，
+            很多情况下可得到鲁棒性和区分力更优的特征
     \end{description}
 \end{frame}
 
@@ -143,10 +149,10 @@
 \section{相关领域研究现状}
 % f{{{
 
-\subsection{柔性配准}
+\subsection{图像配准}
 
 \begin{frame}{问题描述}
-    柔性配准的问题可形式化表达如下\cite{sotiras2013deformable}：
+    图像配准的问题可形式化表达如下\cite{sotiras2013deformable}：
     \begin{eqnarray*}
         W^* = \argmin_{W} M(T, S \circ W) + R(W)
     \end{eqnarray*}
@@ -154,13 +160,13 @@
     $M(A, B)$评价$A$和$B$的不相似度，
     $R(W)$为$W$上基于先验知识的正则项。
     \begin{description}
-        \item[柔性变形模型] $\circ W$
-        \item[相似度量函数] $M$
+        \item[变形模型] $\circ W$
+        \item[相似性测度函数] $M$
     \end{description}
 \end{frame}
 
 \begin{frame}{拟用方法}
-    本研究中拟采取Dinggang Shen提出的HAMMER及其改进方法
+    本研究中拟采取Dinggang Shen提出的HAMMER及其改进方法，进行柔性配准
     \cite{shen2002hammer,shen2007image}
     \footnotesize
     \begin{eqnarray*}
@@ -295,7 +301,7 @@
             解决医学影像数据量少的问题
         \item 使用前述的层叠卷积ISA方法得到的权重作为网络初始权重，
             随后进行全局调优，期望基于统计习得的权重优于随机初始权重
-        \item 基于\cite{vincent2010stacked}
+        \item 基于\cite{masci2011stacked}
             的方法加入输入降噪和重建的监督信号
         \item \dots
     \end{itemize}
