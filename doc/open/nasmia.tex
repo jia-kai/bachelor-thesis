@@ -1,0 +1,331 @@
+% $File: nasmia.tex
+% $Date: Thu Mar 12 00:00:41 2015 +0800
+% $Author: jiakai <jia.kai66@gmail.com>
+
+\documentclass {beamer}
+%\usetheme {JuanLesPins}
+\usetheme{Malmoe}
+%\usecolortheme{beaver}
+\usepackage{fontspec,amsmath,amssymb,verbatim,mathtools,tikz}
+
+% chinese
+\usepackage{zhspacing}
+\zhspacing
+%\usepackage[noindent,UTF8]{ctexcap}
+
+% biblatex
+\usepackage{biblatex}
+\bibliography{refs.bib}
+\defbibheading{bibliography}{\section{}}
+\setbeamertemplate{bibliography item}{\insertbiblabel}
+\renewcommand*{\bibfont}{\footnotesize}
+
+% minted
+\usepackage{minted}
+\newcommand{\inputmintedConfigured}[3][]{\inputminted[fontsize=\small,
+	label=#3,linenos,frame=lines,framesep=0.8em,tabsize=4,#1]{#2}{#3}}
+% \*src[additional minted options]{file path}
+\newcommand{\cppsrc}[2][]{\inputmintedConfigured[#1]{cpp}{#2}}
+
+% math opr
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\trans}[1]{#1^\intercal}
+
+% others
+\newcommand{\addgraph}[2]{\begin{center}
+\includegraphics[width=#1\paperwidth]{#2}\end{center}}
+
+
+\title{基于深度学习的医学影像柔性配准算法研究}
+\author {贾开}
+\institute {清华大学}
+\date{\today}
+
+\begin{document}
+\frame[plain]{\titlepage
+    \begin{center}
+        \begin{tabular}{ll}
+            指导老师 & 宋亦旭 \\
+            报告人 &  贾开 \\
+            学号 & 2011011275
+        \end{tabular}
+    \end{center}
+}
+
+\AtBeginSection[]
+{
+    \begin{frame}<beamer>
+        \frametitle{目录}
+        \tableofcontents[currentsection]
+    \end{frame}
+}
+
+
+\begin{frame}{目录}
+    \tableofcontents
+\end{frame}
+
+\section{选题背景和意义}
+% f{{{
+
+\subsection{医学影像}
+
+\begin{frame}{医学影像的自动分析和处理}
+    \begin{itemize}
+        \item 长期以来的研究热点，驱动机器视觉发展，
+            但尚未完全解决
+        \item 减轻医生负担，提高诊断准确率
+        \item 交叉学科地带，
+            整个领域随着医学、医学影像、计算机科学等领域的发展而不断变化
+    \end{itemize}
+    \addgraph{0.3}{res/mi-concept.jpg}
+    \tiny{image source:
+        \url{http://en.wikipedia.org/wiki/Medical\_imaging}}
+\end{frame}
+
+
+\begin{frame}{医学影像的配准}
+    \begin{itemize}
+        \item 病例到标准模板的匹配
+        \item 术前术后的匹配
+        \item 刚性配准(rigid registration) vs \\
+            柔性配准(non-rigid
+            registration/deformable registration)
+    \end{itemize}
+    \addgraph{0.5}{res/example-brain.png}
+    \tiny{image source: \cite{shen2007image}}
+\end{frame}
+
+\begin{frame}{医学影像的特点及其配准的难点}
+    医学影像的\alert{特点}：
+    \begin{itemize}
+        \item 影像质量不高：分辨率、信噪比等都比较低
+        \item 来源单一而封闭：需大型扫描设备，涉及患者隐私问题
+        \item 正常部位一致性高，病变部位难以有稳定模型来描述
+        \item 一般为3D空间灰度图像，或带时间信息的4D图像
+    \end{itemize}
+    \pause
+    医学影像配准的\alert{难点}：
+    \begin{itemize}
+        \item 非适定性问题(Hadamard, 解存在、唯一、随输入连续变化)
+        \item 需要处理噪声、低分辨率、病变部位的高度不一致等问题
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{柔性配准方法概述}
+    主要包含三个部分：
+    \begin{itemize}
+        \item 柔性变形模型
+        \item \alert<2>{相似度量函数：根据关键点附近的特征值衡量图像相似性}
+        \item 优化方法
+    \end{itemize}
+    \visible<2>{
+        本研究尝试用更好的特征实现更好的相似度量函数，
+        从而提高配准精度
+    }
+\end{frame}
+
+\subsection{深度学习}
+
+\begin{frame}{更好的特征}
+    \begin{description}
+        \item[传统特征] \hfill \\
+            SIFT, HOG, SURF, LBP, \dots \\
+            基于人的知识，\alert{人工设计} \\
+        \item<2>[深度学习] \hfill \\
+            从数据中自动发掘特征基于数据客观分布，\alert{自动发现}
+    \end{description}
+\end{frame}
+
+% f}}}
+
+
+\section{相关领域研究现状}
+% f{{{
+
+\subsection{柔性配准}
+
+\begin{frame}{问题描述}
+    柔性配准的问题可形式化表达如下\cite{sotiras2013deformable}：
+    \begin{eqnarray*}
+        W^* = \argmin_{W} M(T, S \circ W) + R(W)
+    \end{eqnarray*}
+    其中$W$为待求变换的参数表示，$S$和$T$分别是源影像与目标影像，
+    $M(A, B)$评价$A$和$B$的不相似度，
+    $R(W)$为$W$上基于先验知识的正则项。
+    \begin{description}
+        \item[柔性变形模型] $\circ W$
+        \item[相似度量函数] $M$
+    \end{description}
+\end{frame}
+
+\begin{frame}{拟用方法}
+    本研究中拟采取Dinggang Shen提出的HAMMER及其改进方法
+    \cite{shen2002hammer,shen2007image}
+    \footnotesize
+    \begin{eqnarray*}
+        h(u) &=& u + d(u) \\
+        E &=& \sum_{u}
+        \omega_T(u)\left(\frac{
+            \sum_{z\in n(u)}\varepsilon(z)(1-m(a_T(z), a_S(h(z))))}{
+                \sum_{z\in n(u)}\varepsilon(z)}\right) \\
+        & & + \sum_{v}\omega_S(v)\left(\frac{
+            \sum_{z\in n(v)}\varepsilon(z)(1-m(a_T(h^{-1}(z)), a_S(z)))}{
+                \sum_{z\in n(v)}\varepsilon(z)}\right) \\
+        & & + \beta\sum_u\Vert\nabla^2d(u)\Vert
+    \end{eqnarray*}
+\end{frame}
+
+
+\subsection{深度学习}
+
+\begin{frame}{深度学习：沉默后的爆发}
+    \begin{itemize}
+        \item 深度学习：人工神经网络的时髦别名\\
+            相关理论已在二十多年前成型，但当时并未展示出明显优势
+        \item LSVRC2012中，AlexNet取得前5输出的15\%错误率，
+            而最好的传统方法为26\%
+        \item 深度学习已在机器视觉、机器翻译、自然语言处理、
+            语音识别、文本识别等很多领域超越或远超传统方法
+        \item 目前尝试将其用在医学影像特征提取的工作不多
+    \end{itemize}
+
+    \addgraph{0.5}{res/alexnet.png}
+    \tiny{image source: \cite{krizhevsky2012imagenet}}
+\end{frame}
+
+\begin{frame}{深度学习广泛应用的基础}
+    \begin{description}
+        \item[理论可行性] 足够大的神经网络可以无限逼近任意连续实函数
+        \item[大数据] 相对二十年前，现在有了足够多的数据，使得大模型不易过拟合
+        \item[训练技巧] 初始化、非线性、优化等各个环节的tricks
+        \item[硬件设备] GPU使得快速大规模浮点运算成为可能
+    \end{description}
+\end{frame}
+
+\begin{frame}{深度学习的关键因素}
+    \begin{description}
+        \item[模型] 卷积神经网络(CNN)，递归神经网络(RNN)，受限玻耳兹曼机(RBM)，
+            深度信念网络(DBN)等
+        \item[优化方法] 随机梯度下降及其变种(Momentum, AdaGrad, rmsprop等)
+        \item[tricks] Pretrain, Drop Out, ReLU, Maxout,
+            Max/Average Pooling, Batch Normalization等等
+    \end{description}
+\end{frame}
+
+\begin{frame}{非监督的深度学习}
+    \begin{description}
+        \item[降噪自动编码器\cite{vincent2010stacked}]
+            \hfill \\
+            $h=\sigma(Wx+b), \tilde{x}=\sigma(\trans{W}h+c)$
+        \item[层叠卷积自动编码器\cite{masci2011stacked}]
+            \hfill \\
+            $h=\sigma(x*W+b), \tilde{x}=\sigma(h*\tilde{W}+c)$
+        \item[基于数据增广和区分式分类训练\cite{dosovitskiy2014discriminative}]
+            \hfill \\
+            采图像块并进行变换，要求从同一个图像块变换得到的图像块被分到一类
+    \end{description}
+\end{frame}
+
+% f}}}
+
+\section{本研究的内容计划}
+
+\subsection{研究内容概览}
+
+\begin{frame}{研究概览}
+    \begin{description}
+        \item[研究目标] \hfill \\
+            比较几种深度学习方法，及其所习得特征用于医学影像配准的性能
+        \item[研究内容] \hfill \\
+            \begin{itemize}
+                \item 实现\cite{wu2013unsupervised}中算法，
+                    并在ADNI数据集上训练和测试
+                \item 尝试用后述的其他深度学习方法习得特征，并比较效果
+                \item 扩展内容1：在肝脏影像上使用上述方法进行特征学习和配准
+                \item 扩展内容2：将上述特征用于半自动的病变区域选取
+            \end{itemize}
+        \item[研究重点] \hfill \\
+            如何使用深度学习得到更好的特征？
+    \end{description}
+\end{frame}
+
+\begin{frame}{基线算法：层叠卷积ISA\cite{le2011learning,wu2013unsupervised}}
+    \begin{description}
+        \item[概述]
+            \begin{enumerate}
+                \item 在训练数据中采出小的图像块，进行ISA，
+                    得到权重矩阵
+                \item 将上述权重矩阵重新打乱形成卷积核，在训练数据上卷积，
+                    得到新的数据再次进行ISA
+                \item 上述两次ISA的权重矩阵可层叠起来作为两次卷积使用，
+                    即为得到特征提取器
+            \end{enumerate}
+        \item<2>[问题]
+            \begin{enumerate}
+                \item 层数少，作者也未实验更深更大的网络是否能带来性能提升
+                \item 贪心地逐层训练，缺少全局优化过程
+                \item 基于纯统计的方法学习，
+                    训练过程中并未加入关于不变性的先验知识
+            \end{enumerate}
+    \end{description}
+\end{frame}
+
+
+\subsection{改进部分}
+
+\begin{frame}{改进方法：基础改进}
+    针对前述层数少、缺乏全局优化、缺乏先验知识的问题：
+    \pause
+    \begin{itemize}
+        \item<+-> 受目前主流ImageNet分类算法的启发，使用CNN网络结构
+        \item<+-> 将3D卷积(宽，高，通道)扩展到4D(长，宽，高，通道)
+        \item<+-> 可引入Pooling层，以及更多卷积层
+        \item<+-> 先验1：基于所期望的不变性进行数据增广：旋转、平移、拉伸、
+            基于随机场进行柔性扭曲等
+        \item<+-> 先验2：特征应具有区分性：随机采集图像块，
+            对每块增广后作为一类，随后监督地进行分类问题训练
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{改进方法：细节优化}
+    可以尝试的想法：
+    \begin{itemize}
+        \item 使用自然图片或视频进行预训练，随后在医学影像上调优，
+            解决医学影像数据量少的问题
+        \item 使用前述的层叠卷积ISA方法得到的权重作为网络初始权重，
+            随后进行全局调优，期望基于统计习得的权重优于随机初始权重
+        \item 基于\cite{vincent2010stacked}
+            的方法加入输入降噪和重建的监督信号
+        \item \dots
+    \end{itemize}
+\end{frame}
+
+\subsection{时间表}
+\begin{frame}{时间表}
+    \begin{tabular}{ll}
+        寒假 & 研究数据格式，导出数据(已基本完成) \\
+        1-3周 & 实现卷积ISA，得到基本可用的特征 \\
+        4-7周 & 实现、调优并测试基本的配准算法 \\
+        8周 & 准备期中检查 \\
+        9-13周 & 尝试改进的深度学习方法 \\
+        14-15周 & 如果进展顺利，则尝试扩展内容 \\
+        16周 & 整理实验内容，完成论文
+    \end{tabular}
+\end{frame}
+
+
+\section{ }
+\subsection{ }
+\frame{\begin{center}\huge{Thanks!}\end{center}}
+
+\section[]{参考文献}
+\begin{frame}[allowframebreaks]{参考文献}
+    \printbibliography
+\end{frame}
+
+
+\end{document}
+
+% vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}} 
+
