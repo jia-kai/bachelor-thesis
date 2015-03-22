@@ -1,9 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: main.py
-# $Date: Sat Mar 07 16:49:08 2015 +0800
+# $Date: Sat Mar 21 16:40:23 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
+from nasmia.thirdparty import nrrd
 from nasmia.io import ScenePackReader
 from nasmia.visualize import view_3d_data_simple
 
@@ -32,12 +33,23 @@ def draw_surface_box_on_image(surface, image):
     data[x0:x1, y0:y1, z1] = color
     return data
 
+def work_nrrd(fpath):
+    data, opt = nrrd.read(fpath)
+    print data.shape
+    print opt
+    view_3d_data_simple(data)
+
 def main():
     parser = argparse.ArgumentParser(
         description='demo for reading images',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('img_fpath')
+    parser.add_argument('--nrrd', action='store_true',
+                        help='read nrrd files')
     args = parser.parse_args()
+
+    if args.nrrd:
+        return work_nrrd(args.img_fpath)
 
     reader = ScenePackReader(args.img_fpath)
     img = reader.scenes[0].objects['zhang gui feng-before-vein']
