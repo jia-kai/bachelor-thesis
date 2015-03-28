@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # $File: op.py
-# $Date: Sun Mar 22 23:31:45 2015 +0800
+# $Date: Sat Mar 28 21:47:08 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import logging
+import sys
+import os
 logger = logging.getLogger(__name__)
 
 def sharedX(x, name=None):

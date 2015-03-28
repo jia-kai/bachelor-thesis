@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: test_isa.py
-# $Date: Sat Mar 28 21:38:03 2015 +0800
+# $Date: Sat Mar 28 21:47:21 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA import ISA, ISAParam
@@ -38,14 +38,14 @@ def visualize(mat, repermute=False):
     plt.show()
 
 def main():
-    nr_data = 10000
+    nr_data = 100000
     param = ISAParam(in_dim=60, subspace_size=4, hid_dim=40)
     data = gen_data(param, nr_data)
-    isa = ISA(param, data, nr_worker=2)
+    isa = ISA(param, data, nr_worker=4, gpu_list=[0, 1, 2, 3])
     dcheck = isa._shared_val.data_whitening.dot(
         data - isa._shared_val.data_mean.reshape(-1, 1))
     assert np.abs(np.cov(dcheck) - np.eye(dcheck.shape[0])).max() <= 1e-2
-    for i in range(100):
+    for i in range(1000):
         monitor = isa.perform_iter(30)
         msg = 'train iter {}\n'.format(i)
         for k, v in monitor.iteritems():

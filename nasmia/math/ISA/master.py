@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: master.py
-# $Date: Sat Mar 28 21:37:05 2015 +0800
+# $Date: Sat Mar 28 21:54:05 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
@@ -12,6 +12,7 @@ import numpy as np
 from collections import OrderedDict
 import multiprocessing
 import logging
+import time
 logger = logging.getLogger(__name__)
 
 class ISA(object):
@@ -52,6 +53,8 @@ class ISA(object):
     def perform_iter(self, learning_rate):
         """perform one iteration
         :return: monitor channels as OrderedDict"""
+        tstart = time.time()
+
         acc = self._shared_val.result_accum
         w = self._shared_val.isa_weight
 
@@ -76,7 +79,7 @@ class ISA(object):
         cost = acc.get()
         assert cost.size == 1
         monitor['cost'] = float(cost[0])
-
+        monitor['training_time'] = time.time() - tstart
         return monitor
 
     def _init_whiten(self):
