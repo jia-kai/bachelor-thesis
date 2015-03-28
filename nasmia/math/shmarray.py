@@ -82,7 +82,7 @@ class shmarray(numpy.ndarray):
         return __reduce_ex__(self, 0)
 
 
-def create(shape, dtype='d', alignment = 32):
+def create(shape, dtype='d', alignment=32, force_storage=None):
     '''Create an uninitialised shared array. Avoid object arrays, as these
     will almost certainly break as the objects themselves won't be stored in shared
     memory, only the pointers'''
@@ -100,7 +100,10 @@ def create(shape, dtype='d', alignment = 32):
     dt = 'b'
 
     # We create the big array first
-    a = sharedctypes.RawArray(dt, N_bytes_big)
+    if force_storage is not None:
+        a = force_storage
+    else:
+        a = sharedctypes.RawArray(dt, N_bytes_big)
 
     sa =  shmarray(a, (N_bytes_big,), dt)
 

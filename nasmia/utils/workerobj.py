@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: workerobj.py
-# $Date: Sat Mar 28 11:06:19 2015 +0800
+# $Date: Sat Mar 28 21:09:12 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
@@ -102,6 +102,7 @@ class WorkerObj(object):
                 self.__proc_type == self.__PROC_TYPE_MASTER):
             def func(_, *args, **kwargs):
                 tid = self.__task_id
+                self.assert_worker_alive()
                 self.__task_queue.put((tid, name, args, kwargs))
                 self.__task_id += 1
                 return AsyncTask(self.__result_queue, tid)
