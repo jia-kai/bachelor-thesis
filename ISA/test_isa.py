@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: test_isa.py
-# $Date: Sat Mar 28 21:47:21 2015 +0800
+# $Date: Sun Mar 29 09:41:53 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA import ISA, ISAParam
@@ -10,6 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import logging
+import multiprocessing
+import argparse
 logger = logging.getLogger(__name__)
 
 def gen_data(param, nr_data):
@@ -38,21 +40,37 @@ def visualize(mat, repermute=False):
     plt.show()
 
 def main():
-    nr_data = 100000
+    parser = argparse.ArgumentParser(
+        description='test ISA by synthetic data',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-t', '--nr_data', type=int, default=10000)
+    parser.add_argument('--gpus', help='comma separated list of gpus')
+    parser.add_argument('--nr_iter', type=int, default=100)
+    args = parser.parse_args()
+
+    if args.gpus:
+        gpus = map(int, args.gpus.split(','))
+        isa_args = {'nr_worker': len(gpus), 'gpu_list': gpus}
+    else:
+        isa_args = {'nr_worker': multiprocessing.cpu_count()}
+
     param = ISAParam(in_dim=60, subspace_size=4, hid_dim=40)
-    data = gen_data(param, nr_data)
-    isa = ISA(param, data, nr_worker=4, gpu_list=[0, 1, 2, 3])
+    data = gen_data(param, args.nr_data)
+    isa = ISA(param, data, **isa_args)
     dcheck = isa._shared_val.data_whitening.dot(
         data - isa._shared_val.data_mean.reshape(-1, 1))
     assert np.abs(np.cov(dcheck) - np.eye(dcheck.shape[0])).max() <= 1e-2
-    for i in range(1000):
+    for i in range(args.nr_iter):
         monitor = isa.perform_iter(30)
         msg = 'train iter {}\n'.format(i)
         for k, v in monitor.iteritems():
             msg += '{}: {}\n'.format(k, v)
         logger.info(msg[:-1])
 
-    visualize(np.corrcoef(isa.apply_to_data(data, do_reduce=False)))
+    model = isa.get_model()
+    cost_check = model(data).mean()
+    assert abs(cost_check - monitor['cost']) < 1e-4
+    visualize(np.corrcoef(model(data, level2=False)))
 
 if __name__ == '__main__':
     main()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: common.py
-# $Date: Sat Mar 28 21:27:46 2015 +0800
+# $Date: Sun Mar 29 09:42:48 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ..op import floatX
@@ -26,7 +26,7 @@ class ISAParam(object):
     min_eigen = 1e-3
     """minimum eigen value ensured during PCA"""
 
-    eps = 0.1
+    eps = 1e-6
 
     def __init__(self, in_dim, subspace_size, hid_dim=None, out_dim=None):
         self.in_dim = int(in_dim)
@@ -49,7 +49,7 @@ class ISAParam(object):
         self.hid_dim = hid_dim
         self.out_dim = out_dim
 
-    def make_hidout_conn_mat(self):
+    def make_outid_conn_mat(self):
         """:return: a matrix of shape(out_dim, hid_dim) to describe 
             the connection from hidden layer to output layer
         """

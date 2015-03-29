@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: worker.py
-# $Date: Sat Mar 28 21:30:25 2015 +0800
+# $Date: Sun Mar 29 09:42:31 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
@@ -102,7 +102,7 @@ class ISAWorker(WorkerObj):
     @cached_property
     def _theano_cost_grad(self):
         """theano functions that takes W and return cost or grad_wrt_w"""
-        conn_mat = sharedX(self._isa_param.make_hidout_conn_mat())
+        conn_mat = sharedX(self._isa_param.make_outid_conn_mat())
         W = T.matrix()
         hidv = T.square(T.dot(W, self._theano_shared_data))
         reduced = T.dot(conn_mat, hidv)

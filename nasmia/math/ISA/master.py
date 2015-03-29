@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # $File: master.py
-# $Date: Sat Mar 28 21:54:05 2015 +0800
+# $Date: Sun Mar 29 09:40:36 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
 from .worker import ISAWorker
+from .model import ISAModel
 from ..op import floatX
 
 import numpy as np
@@ -49,6 +50,7 @@ class ISA(object):
 
         self._init_whiten()
         self._init_weight()
+        logger.info('ISA solver started, nr_worker={}'.format(nr_worker))
 
     def perform_iter(self, learning_rate):
         """perform one iteration
@@ -142,15 +144,9 @@ class ISA(object):
         w[:] = eig_vec.dot(np.diag(1.0 / np.sqrt(eig_val))).dot(
             eig_vec.T).dot(w)
 
-    def apply_to_data(self, data, do_reduce=True):
-        assert data.ndim == 2 and data.shape[0] == self._isa_param.in_dim
-
-        # whiten
-        wht = data - self._shared_val.data_mean.reshape(-1, 1)
-        wht = np.dot(self._shared_val.data_whitening, data)
-
-        hidv = np.square(np.dot(self._shared_val.isa_weight, wht))
-        if do_reduce:
-            hidv_red = np.dot(self._isa_param.make_hidout_conn_mat(), hidv)
-            return np.sqrt(hidv_red)
-        return hidv
+    def get_model(self):
+        sv = self._shared_val
+        return ISAModel(
+            bias=-sv.data_mean,
+            coeff=sv.isa_weight.dot(sv.data_whitening),
+            outhid_conn=self._isa_param.make_outid_conn_mat())
