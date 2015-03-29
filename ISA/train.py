@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: train.py
-# $Date: Sat Mar 28 23:57:18 2015 +0800
+# $Date: Sun Mar 29 09:51:00 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA import ISA, ISAParam
@@ -21,7 +21,10 @@ def main():
     parser.add_argument('--out_dim', type=int, default=300)
     parser.add_argument('--nr_worker', type=int, default=4)
     parser.add_argument('--gpus', default='0,1,2,3')
+    parser.add_argument('--dump_iter', type=int, default=10,
+                        help='number of iters between model dump')
     parser.add_argument('data')
+    parser.add_argument('output')
     args = parser.parse_args()
 
     data = serial.load(args.data, np.ndarray)
@@ -31,12 +34,18 @@ def main():
         out_dim=args.out_dim)
     isa = ISA(param, data, nr_worker=args.nr_worker,
               gpu_list=map(int, args.gpus.split(',')))
-    for i in range(1000):
+    iter_num = 0
+    while True:
         monitor = isa.perform_iter(500)
-        msg = 'train iter {}\n'.format(i)
+        msg = 'train iter {}\n'.format(iter_num)
         for k, v in monitor.iteritems():
             msg += '{}: {}\n'.format(k, v)
         logger.info(msg[:-1])
+        if iter_num % args.dump_iter == 0:
+            model = isa.get_model()
+            model.monitor = monitor
+            serial.dump(model, args.output, use_pickle=True)
+        iter_num += 1
 
 if __name__ == '__main__':
     main()

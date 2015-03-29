@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: simple.py
-# $Date: Sat Mar 07 16:51:24 2015 +0800
+# $Date: Sun Mar 29 10:01:52 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
@@ -8,10 +8,14 @@ import functools
 import cv2
 
 class SimpleData3DViewer(object):
-    def __init__(self, data):
+    data = None
+    scale = None
+
+    def __init__(self, data, scale=1):
         dmin = data.min()
         dmax = data.max()
         self.data = ((data - dmin) * (255.0 / (dmax - dmin))).astype('uint8')
+        self.scale = scale
 
     def mainloop(self):
         for i in range(3):
@@ -31,5 +35,7 @@ class SimpleData3DViewer(object):
         s = slice(None, None, None)
         ind = [(pos, ), (s, pos,), (s, s, pos)]
         img = self.data[ind[axis]]
+        if self.scale != 1:
+            img = cv2.resize(img, (0, 0), fx=self.scale, fy=self.scale,
+                             interpolation=cv2.INTER_NEAREST)
         cv2.imshow(win_name, img)
-
