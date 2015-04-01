@@ -1,9 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: test_isa.py
-# $Date: Sun Mar 29 09:41:53 2015 +0800
+# $Date: Wed Apr 01 22:17:16 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
+from nasmia.math.op import sharedX
 from nasmia.math.ISA import ISA, ISAParam
 
 import numpy as np
@@ -39,6 +40,12 @@ def visualize(mat, repermute=False):
     plt.matshow(mat, cmap='gray')
     plt.show()
 
+def eval_by_conv(data, model):
+    data = data.T
+    data = data.reshape([data.shape[0]] + list(model.get_conv_coeff().shape[1:]))
+    y = model.fprop_conv(sharedX(data))
+    return y.eval().reshape(data.shape[0], -1)
+
 def main():
     parser = argparse.ArgumentParser(
         description='test ISA by synthetic data',
@@ -54,7 +61,7 @@ def main():
     else:
         isa_args = {'nr_worker': multiprocessing.cpu_count()}
 
-    param = ISAParam(in_dim=60, subspace_size=4, hid_dim=40)
+    param = ISAParam(in_dim=64, subspace_size=4, hid_dim=40)
     data = gen_data(param, args.nr_data)
     isa = ISA(param, data, **isa_args)
     dcheck = isa._shared_val.data_whitening.dot(
@@ -70,6 +77,9 @@ def main():
     model = isa.get_model()
     cost_check = model(data).mean()
     assert abs(cost_check - monitor['cost']) < 1e-4
+    if args.gpus:
+        cost_check = eval_by_conv(data, model).mean()
+        assert abs(cost_check - monitor['cost']) < 1e-4
     visualize(np.corrcoef(model(data, level2=False)))
 
 if __name__ == '__main__':

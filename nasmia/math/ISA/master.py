@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: master.py
-# $Date: Sun Mar 29 09:52:27 2015 +0800
+# $Date: Tue Mar 31 22:47:25 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
@@ -146,7 +146,8 @@ class ISA(object):
 
     def get_model(self):
         sv = self._shared_val
+        coeff = np.array(sv.isa_weight.dot(sv.data_whitening))
         return ISAModel(
-            bias=np.array(-sv.data_mean),
-            coeff=np.array(sv.isa_weight.dot(sv.data_whitening)),
+            coeff=coeff,
+            bias=-coeff.dot(sv.data_mean),
             outhid_conn=self._isa_param.make_outid_conn_mat())
