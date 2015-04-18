@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: worker.py
-# $Date: Sun Mar 29 09:42:31 2015 +0800
+# $Date: Sun Apr 05 12:10:00 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
@@ -107,8 +107,7 @@ class ISAWorker(WorkerObj):
         hidv = T.square(T.dot(W, self._theano_shared_data))
         reduced = T.dot(conn_mat, hidv)
         outv = T.sqrt(reduced + self._isa_param.eps)
-        cost = outv.sum() * sharedX(
-            1.0 / self._tot_nr_data / self._isa_param.out_dim)
+        cost = outv.sum() * sharedX(1.0 / self._tot_nr_data)
         grad = T.grad(cost, W)
         with timed_operation('compiling grad and cost'):
             f_cost = theano.function([W], cost)

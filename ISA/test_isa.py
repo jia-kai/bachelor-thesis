@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: test_isa.py
-# $Date: Wed Apr 01 22:17:16 2015 +0800
+# $Date: Sun Apr 05 12:14:07 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op import sharedX
@@ -68,18 +68,22 @@ def main():
         data - isa._shared_val.data_mean.reshape(-1, 1))
     assert np.abs(np.cov(dcheck) - np.eye(dcheck.shape[0])).max() <= 1e-2
     for i in range(args.nr_iter):
-        monitor = isa.perform_iter(30)
+        monitor = isa.perform_iter(1.0)
         msg = 'train iter {}\n'.format(i)
         for k, v in monitor.iteritems():
             msg += '{}: {}\n'.format(k, v)
         logger.info(msg[:-1])
 
     model = isa.get_model()
-    cost_check = model(data).mean()
-    assert abs(cost_check - monitor['cost']) < 1e-4
+    cost_check = model(data).mean(axis=1).sum()
+    def check_cost():
+        assert abs(cost_check - monitor['cost']) < 1e-4, \
+            'cost_check={} monitor={}'.format(
+                cost_check, monitor['cost'])
+    check_cost()
     if args.gpus:
-        cost_check = eval_by_conv(data, model).mean()
-        assert abs(cost_check - monitor['cost']) < 1e-4
+        cost_check = eval_by_conv(data, model).mean(axis=0).sum()
+        check_cost()
     visualize(np.corrcoef(model(data, level2=False)))
 
 if __name__ == '__main__':

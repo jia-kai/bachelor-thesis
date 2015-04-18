@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: train.py
-# $Date: Sun Mar 29 09:51:00 2015 +0800
+# $Date: Sun Apr 05 20:09:07 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA import ISA, ISAParam
@@ -17,12 +17,15 @@ def main():
     parser = argparse.ArgumentParser(
         description='train ISA',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--subspace_size', type=int, default=2)
-    parser.add_argument('--out_dim', type=int, default=300)
+    parser.add_argument('--subspace_size', type=int, default=2,
+                        help='number of features in each subspace')
+    parser.add_argument('--out_dim', type=int, default=150,
+                        help='output dimension (i.e. number of subspaces)')
     parser.add_argument('--nr_worker', type=int, default=4)
     parser.add_argument('--gpus', default='0,1,2,3')
     parser.add_argument('--dump_iter', type=int, default=10,
                         help='number of iters between model dump')
+    parser.add_argument('--learning_rate', type=float, default=2)
     parser.add_argument('data')
     parser.add_argument('output')
     args = parser.parse_args()
@@ -36,7 +39,7 @@ def main():
               gpu_list=map(int, args.gpus.split(',')))
     iter_num = 0
     while True:
-        monitor = isa.perform_iter(500)
+        monitor = isa.perform_iter(args.learning_rate)
         msg = 'train iter {}\n'.format(iter_num)
         for k, v in monitor.iteritems():
             msg += '{}: {}\n'.format(k, v)

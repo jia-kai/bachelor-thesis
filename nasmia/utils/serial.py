@@ -1,13 +1,20 @@
 # -*- coding: utf-8 -*-
 # $File: serial.py
-# $Date: Sun Mar 29 09:31:25 2015 +0800
+# $Date: Sat Apr 04 10:56:42 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
+
+from ..thirdparty import nrrd
 
 import joblib
 import cPickle as pickle
 
-def load(fpath, require_type=None):
+def load(fpath, require_type=None, return_nrrd_options=False):
     assert isinstance(fpath, basestring)
+    if fpath.endswith('nrrd'):
+        data, options = nrrd.read(fpath)
+        if return_nrrd_options:
+            return data, options
+        return data
     try:
         obj = joblib.load(fpath)
     except:

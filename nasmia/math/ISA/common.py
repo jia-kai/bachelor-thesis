@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: common.py
-# $Date: Sun Mar 29 09:42:48 2015 +0800
+# $Date: Sun Apr 05 20:52:35 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ..op import floatX
@@ -23,7 +23,7 @@ class ISAParam(object):
     pca_energy_keep = 0.7
     """total energy to keep for PCA dimension reduction and whitening"""
 
-    min_eigen = 1e-3
+    min_eigen = 1e-8
     """minimum eigen value ensured during PCA"""
 
     eps = 1e-6

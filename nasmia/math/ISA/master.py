@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: master.py
-# $Date: Tue Mar 31 22:47:25 2015 +0800
+# $Date: Sun Apr 05 20:55:55 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
@@ -108,14 +108,22 @@ class ISA(object):
         eig_vec = eig_vec[:, idx]
 
         w = np.zeros_like(self._shared_val.data_whitening)
-        thresh = np.square(eig_val).sum() * self._isa_param.pca_energy_keep
+        logger.info('eigen values: {}'.format(eig_val))
+        thresh = eig_val.sum() * self._isa_param.pca_energy_keep
         idx = 0
         while thresh > 0 or idx < self._isa_param.hid_dim:
             cur_ev = eig_val[idx]
-            assert cur_ev >= self._isa_param.min_eigen
+            assert cur_ev >= self._isa_param.min_eigen, (cur_ev, idx)
             w[idx] = eig_vec[:, idx] / np.sqrt(cur_ev)
-            thresh -= np.square(cur_ev)
+            thresh_next = thresh - cur_ev
+            if thresh > 0 and thresh_next <= 0:
+                logger.warn(
+                    'energy too small at the {}th dimension; '
+                    'thresh={} ev_neighbour={}'.format(
+                        idx, thresh, eig_val[idx:idx+2]))
+            thresh = thresh_next
             idx += 1
+        logger.info('smallest eigen value: {}'.format(cur_ev))
         if idx < w.shape[0]:
             w = w[:idx]
             self._shared_val.reset_in_dim(idx)

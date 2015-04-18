@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: model.py
-# $Date: Wed Apr 01 22:17:08 2015 +0800
+# $Date: Sun Apr 05 19:41:04 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ..op import sharedX
@@ -9,12 +9,16 @@ import numpy as np
 
 class ISAModel(object):
     coeff = None
-    """coeff to be multiplied to input"""
+    """coeff to be multiplied to input,
+    shape: (output channel, input channel)"""
 
     bias = None
     """bias to be added to each channel after input multiplied by coeff"""
 
     outhid_conn = None
+
+    in_chl = 1
+    """numer of channels of input data, used for conv_kern_shape"""
 
     def __init__(self, coeff, bias, outhid_conn):
         self.coeff = coeff
@@ -41,31 +45,38 @@ class ISAModel(object):
             result = result.flatten()
         return result
 
-    def get_conv_coeff(self, kern_shape=None, in_chl=1):
+    @property
+    def conv_kern_shape(self):
+        """kernel shape for equivalent convolution"""
+        kern_size = (self.coeff.shape[1] / self.in_chl) ** (1.0 / 3)
+        kern_shape = [int(kern_size + 0.5)] * 3
+        assert len(kern_shape) == 3
+        actual_dim = np.product(kern_shape) * self.in_chl
+        assert actual_dim == self.coeff.shape[1], \
+            'bad shape: {} {}'.format(self.coeff.shape, actual_dim)
+        return kern_shape
+
+    @property
+    def out_chl(self):
+        return self.outhid_conn.shape[0]
+
+    def get_conv_coeff(self):
         """convert coeff to theano theano.sandbox.cuda.blas.GpuCorr3dMM format;
         more specifically, in (out channel, in channel, x, y, z) format, without
         flipping
-        assume image format: batch, chl, x, y, z
-        :param kern_shape: kernel shape, if None, would be the cubic root of
-            kernel size"""
-        if kern_shape is None:
-            kern_size = (self.coeff.shape[1] / in_chl) ** (1.0 / 3)
-            kern_shape = [int(kern_size + 0.5)] * 3
-        assert len(kern_shape) == 3
-        actual_dim = np.product(kern_shape) * in_chl
-        assert actual_dim == self.coeff.shape[1], \
-            'bad shape: {} {}'.format(self.coeff.shape, actual_dim)
-        return self.coeff.reshape([self.coeff.shape[0], in_chl] + kern_shape)
+        assume image format: batch, chl, x, y, z"""
+        return self.coeff.reshape(
+            self.coeff.shape[0], self.in_chl, *self.conv_kern_shape)
 
-    def fprop_conv(self, state_below):
+    def fprop_conv(self, state_below, stride=1):
         """fprop theano state_below using conv method
         :param state_below: batch, chl, x, y, z"""
         import theano
         import theano.tensor as T
         from theano.sandbox.cuda.blas import GpuCorr3dMM
         assert state_below.ndim == 5
-        W = self.get_conv_coeff()
-        corr = GpuCorr3dMM()
+        stride = int(stride)
+        corr = GpuCorr3dMM(subsample=(stride, stride, stride))
         conv_rst = corr(state_below, sharedX(self.get_conv_coeff()))
         conv_rst += sharedX(self.bias).dimshuffle('x', 0, 'x', 'x', 'x')
         sqr = T.square(conv_rst)

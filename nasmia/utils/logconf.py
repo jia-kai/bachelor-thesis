@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: logconf.py
-# $Date: Sat Feb 21 23:20:20 2015 +0800
+# $Date: Sun Apr 05 11:45:58 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import logging
@@ -15,7 +15,7 @@ def init():
     global log_fout
     global write_file
     if os.getenv('NASMIA_LOG_FILE'):
-        log_fout = open(os.getenv('NASMIA_LOG_FILE'), 'a')
+        log_fout = open(os.getenv('NASMIA_LOG_FILE'), 'w')
         def write_file(val):
             while True:
                 s = val.find('\x1b')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: view_model.py
-# $Date: Sun Mar 29 10:19:09 2015 +0800
+# $Date: Sun Apr 05 11:59:33 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA.model import ISAModel
@@ -24,8 +24,8 @@ def main():
     args = parser.parse_args()
 
     model = serial.load(args.model, ISAModel)
-    patch_size = int(model.bias.size ** (1.0/3) + 0.5)
-    assert patch_size ** 3 == model.bias.size
+    patch_size = int(model.coeff.shape[1] ** (1.0/3) + 0.5)
+    assert patch_size ** 3 == model.coeff.shape[1]
     patch_shape = (patch_size, patch_size, patch_size)
 
     #view_3d_data_simple(-model.bias.reshape(patch_shape), 10)
