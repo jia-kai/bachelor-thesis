@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: show_dist.py
-# $Date: Sun Apr 19 23:40:24 2015 +0800
+# $Date: Mon Apr 20 00:14:05 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -16,14 +16,12 @@ import argparse
 import logging
 logger = logging.getLogger(__name__)
 
-def normalize_features(ftr):
-    return ftr / np.sqrt(np.sum(np.square(ftr), axis=0, keepdims=True))
-
 class ShowDist(object):
     _ftr0 = None
     _ftr1 = None
     _ftr1_sub = None
     _ftr1_slice = None
+    _img_shape = None
 
     def __init__(self, img0, ftr0, img1, ftr1):
         logger.info('img shape: {}; feature shape: {}'.format(
@@ -34,8 +32,9 @@ class ShowDist(object):
             assert (
                 ftr0.shape[i + 1] == img0.shape[i] - LAYER1_PATCH_SIZE + 1), (
                     ftr0.shape, img0.shape)
-        self._ftr0 = normalize_features(ftr0)
-        self._ftr1 = normalize_features(ftr1)
+        self._img_shape = np.array(img0.shape)
+        self._ftr0 = ftr0
+        self._ftr1 = ftr1
         view_3d_data_simple(img0, onclick=self._on_img0_click, waitkey=False,
                             prefix='img0_')
         view_3d_data_simple(img1, onaxischange=self._on_img1_axis_change,
@@ -49,22 +48,34 @@ class ShowDist(object):
     def _on_img0_click(self, x, y, z):
         logger.info('click at {}, slice={}'.format(
             (x, y, z), self._ftr1_slice))
-        x -= LAYER1_PATCH_SIZE / 2
-        y -= LAYER1_PATCH_SIZE / 2
-        z -= LAYER1_PATCH_SIZE / 2
-        if min(x, y, z, self._ftr0.shape[1] - max(x, y, z)) < 0:
+        if self._ftr1_sub is None:
+            logger.warn('no suitable slice')
+            return
+        border = LAYER1_PATCH_SIZE / 2
+        if min(x, y, z, np.min(self._img_shape - [x, y, z])) < border:
             logger.warn('click out of feature boundary')
             return
-        ftr0 = self._ftr0[:, x, y, z].reshape(1, -1)
-        rst = np.tensordot(ftr0, self._ftr1_sub, axes=(1, 0))[0]
+        x -= border
+        y -= border
+        z -= border
+        ftr0 = self._ftr0[:, x, y, z].reshape(-1, 1, 1)
+        rst = np.sqrt(np.square(ftr0 - self._ftr1_sub).sum(axis=0))
         fig = plt.figure(0)
         ax = fig.add_subplot(111)
         matshow = ax.matshow(rst, interpolation='nearest')
         plt.colorbar(matshow)
         fig.show()
 
-    def _on_img1_axis_change(self, axis, pos, ind):
-        self._ftr1_sub = self._ftr1[tuple([slice(None)] + list(ind))]
+    def _on_img1_axis_change(self, axis, pos):
+        border = LAYER1_PATCH_SIZE / 2
+        if min(pos, self._img_shape[axis] - pos) < border:
+            self._ftr1_sub = None
+            return
+        pos -= border
+
+        ind = [slice(None)] * 4
+        ind[axis + 1] = pos
+        self._ftr1_sub = self._ftr1[tuple(ind)]
         self._ftr1_slice = (axis, pos)
 
 

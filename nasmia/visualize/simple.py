@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: simple.py
-# $Date: Sun Apr 19 22:22:49 2015 +0800
+# $Date: Mon Apr 20 00:19:23 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
@@ -19,7 +19,7 @@ class SimpleData3DViewer(object):
     def __init__(self, data, scale=1, onclick=None, onaxischange=None,
                  waitkey=True, prefix=''):
         """:param onclick: callback, (x, y, z)
-        :param onaxischange: callback, (axis, pos, numpy_index)"""
+        :param onaxischange: callback, (axis, pos)"""
         assert data.ndim == 3
         self._axis_pos = [0] * 3
         dmin = data.min()
@@ -59,9 +59,9 @@ class SimpleData3DViewer(object):
                              interpolation=cv2.INTER_NEAREST)
         cv2.imshow(win_name, img)
         if self._onaxischange:
-            self._onaxischange(axis, pos, ind)
+            self._onaxischange(axis, pos)
 
-    def _on_mouse(self, event, x, y, *args, **kwargs):
+    def _on_mouse(self, event, y, x, *args, **kwargs):
         axis = kwargs['axis']
         if self._onclick is None or event != cv2.EVENT_LBUTTONDOWN:
             return
