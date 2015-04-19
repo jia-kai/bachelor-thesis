@@ -1,11 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-# $File: main.py
-# $Date: Sat Mar 21 16:40:23 2015 +0800
+# $File: view_data.py
+# $Date: Sat Apr 18 16:29:19 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
-from nasmia.thirdparty import nrrd
-from nasmia.io import ScenePackReader
+from nasmia.utils import serial
 from nasmia.visualize import view_3d_data_simple
 
 import numpy as np
@@ -33,28 +32,16 @@ def draw_surface_box_on_image(surface, image):
     data[x0:x1, y0:y1, z1] = color
     return data
 
-def work_nrrd(fpath):
-    data, opt = nrrd.read(fpath)
-    print data.shape
-    print opt
-    view_3d_data_simple(data)
-
 def main():
     parser = argparse.ArgumentParser(
-        description='demo for reading images',
+        description='view an 3D image',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('img_fpath')
-    parser.add_argument('--nrrd', action='store_true',
-                        help='read nrrd files')
     args = parser.parse_args()
 
-    if args.nrrd:
-        return work_nrrd(args.img_fpath)
-
-    reader = ScenePackReader(args.img_fpath)
-    img = reader.scenes[0].objects['zhang gui feng-before-vein']
-    surface = reader.scenes[0].objects['tumor']
-    view_3d_data_simple(draw_surface_box_on_image(surface, img))
+    data = serial.load(args.img_fpath)
+    print data.shape, data.dtype
+    view_3d_data_simple(data)
 
 if __name__ == '__main__':
     main()

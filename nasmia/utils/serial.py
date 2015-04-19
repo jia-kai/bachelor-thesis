@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: serial.py
-# $Date: Sat Apr 04 10:56:42 2015 +0800
+# $Date: Sat Apr 18 16:25:01 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ..thirdparty import nrrd
@@ -15,6 +15,9 @@ def load(fpath, require_type=None, return_nrrd_options=False):
         if return_nrrd_options:
             return data, options
         return data
+    if '.nii' in fpath:
+        import nibabel as nib
+        return nib.load(fpath).get_data()
     try:
         obj = joblib.load(fpath)
     except:
