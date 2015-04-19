@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: show_dist.py
-# $Date: Sun Apr 19 22:48:43 2015 +0800
+# $Date: Sun Apr 19 23:40:24 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -31,7 +31,9 @@ class ShowDist(object):
         assert img0.shape == img1.shape and ftr0.shape == ftr1.shape
         assert ftr0.ndim == 4 and img0.ndim == 3
         for i in range(3):
-            assert ftr0.shape[i + 1] == img0.shape[i] - LAYER1_PATCH_SIZE + 1
+            assert (
+                ftr0.shape[i + 1] == img0.shape[i] - LAYER1_PATCH_SIZE + 1), (
+                    ftr0.shape, img0.shape)
         self._ftr0 = normalize_features(ftr0)
         self._ftr1 = normalize_features(ftr1)
         view_3d_data_simple(img0, onclick=self._on_img0_click, waitkey=False,
@@ -70,13 +72,14 @@ def main():
     parser = argparse.ArgumentParser(
         description='show distance of a point to each point on a slice',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('img0')
-    parser.add_argument('ftr0')
-    parser.add_argument('img1')
-    parser.add_argument('ftr1')
+    parser.add_argument('pack0')
+    parser.add_argument('pack1')
     args = parser.parse_args()
 
-    ShowDist(*map(serial.load, [args.img0, args.ftr0, args.img1, args.ftr1]))
+    pack0 = serial.load(args.pack0)
+    pack1 = serial.load(args.pack1)
+    ShowDist(pack0['img'], pack0['ftr'],
+             pack1['img'], pack1['ftr'])
 
 if __name__ == '__main__':
     main()

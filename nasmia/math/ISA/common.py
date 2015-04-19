@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: common.py
-# $Date: Sun Apr 05 20:52:35 2015 +0800
+# $Date: Sun Apr 19 23:13:43 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ..op import floatX
@@ -23,7 +23,7 @@ class ISAParam(object):
     pca_energy_keep = 0.7
     """total energy to keep for PCA dimension reduction and whitening"""
 
-    min_eigen = 1e-8
+    min_eigen = 1e-4
     """minimum eigen value ensured during PCA"""
 
     eps = 1e-6
@@ -50,7 +50,7 @@ class ISAParam(object):
         self.out_dim = out_dim
 
     def make_outid_conn_mat(self):
-        """:return: a matrix of shape(out_dim, hid_dim) to describe 
+        """:return: a matrix of shape(out_dim, hid_dim) to describe
             the connection from hidden layer to output layer
         """
         rst = np.zeros((self.out_dim, self.hid_dim), dtype=floatX())

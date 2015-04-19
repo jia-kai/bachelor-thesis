@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: apply_model_on_data.py
-# $Date: Sun Apr 19 21:49:29 2015 +0800
+# $Date: Sun Apr 19 23:25:34 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial, timed_operation, ProgressReporter
@@ -41,8 +41,10 @@ def make_fprop(layer0, layer1):
         oshape[1] = layer1.out_chl
         for i in range(2, 5):
             oshape[i] -= LAYER1_PATCH_SIZE - 1
-        y_rst = np.empty(oshape, dtype=x.dtype)
+        y_rst = np.empty(oshape, dtype='float32')
         y_rst[:] = np.NAN
+        logger.info('total feature size: {:.2f}MiB'.format(
+                    y_rst.size * 4 / 1024.0**2))
 
         prog = ProgressReporter('fprop', LAYER0_STRIDE ** 3)
         for i,j, k in itertools.product(range(LAYER0_STRIDE), repeat=3):

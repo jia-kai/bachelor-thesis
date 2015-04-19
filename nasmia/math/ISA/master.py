@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: master.py
-# $Date: Sun Apr 05 20:55:55 2015 +0800
+# $Date: Sun Apr 19 23:17:39 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
@@ -101,7 +101,7 @@ class ISA(object):
         cov = acc.get().reshape(self._isa_param.in_dim, self._isa_param.in_dim)
         cov /= self._nr_data
 
-        # eigen decomposition and get 
+        # eigen decomposition and get
         eig_val, eig_vec = np.linalg.eigh(cov)
         idx = eig_val.argsort()[::-1]
         eig_val = eig_val[idx]
@@ -111,7 +111,7 @@ class ISA(object):
         logger.info('eigen values: {}'.format(eig_val))
         thresh = eig_val.sum() * self._isa_param.pca_energy_keep
         idx = 0
-        while thresh > 0 or idx < self._isa_param.hid_dim:
+        while idx < self._isa_param.hid_dim:
             cur_ev = eig_val[idx]
             assert cur_ev >= self._isa_param.min_eigen, (cur_ev, idx)
             w[idx] = eig_vec[:, idx] / np.sqrt(cur_ev)
@@ -128,7 +128,8 @@ class ISA(object):
             w = w[:idx]
             self._shared_val.reset_in_dim(idx)
             self._invoke_workers(lambda i: i.reset_in_dim(idx))
-            logger.info('reduce input dimension to {}'.format(idx))
+        logger.info('reduced input dimension: {}; hid dim: {}'.format(
+            w.shape[0], self._isa_param.hid_dim))
         self._shared_val.data_whitening[:] = w
         self._invoke_workers(lambda i: i.mul_by_whiten())
 

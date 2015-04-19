@@ -1,11 +1,12 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-# $File: crop_patch_l2.py
-# $Date: Sun Apr 05 19:41:54 2015 +0800
+# $File: crop_patch_l1.py
+# $Date: Sun Apr 19 22:56:41 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial, ProgressReporter
 from nasmia.visualize import view_3d_data_simple
+from nasmia.math.ISA.config import LAYER1_PATCH_SIZE
 
 import numpy as np
 import theano.tensor as T
@@ -90,7 +91,7 @@ class PatchCropper(object):
                 sub = gen_subpatch()
                 if sub.mean() >= thresh:
                     break
-            self._fprop_inp[idx] = sub
+            self._fprop_inp[i] = sub
 
         s = self._output_idx
         t = s + args.patch_per_img
@@ -121,7 +122,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='randomly crop patches from nrrd image files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--patch_size', type=int, default=21)
+    parser.add_argument('--patch_size', type=int, default=LAYER1_PATCH_SIZE)
     parser.add_argument('--patch_per_img', type=int, default=15000)
     parser.add_argument('--seed', type=int, default=20150405,
                         help='rng seed')
