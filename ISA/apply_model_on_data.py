@@ -1,11 +1,12 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: apply_model_on_data.py
-# $Date: Sun Apr 19 19:26:44 2015 +0800
+# $Date: Sun Apr 19 21:49:29 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial, timed_operation, ProgressReporter
 from nasmia.math.ISA.model import ISAModel
+from nasmia.math.ISA.config import LAYER1_PATCH_SIZE, LAYER0_STRIDE
 
 import theano.tensor as T
 import theano
@@ -17,9 +18,6 @@ import argparse
 import os
 logger = logging.getLogger(__name__)
 
-LAYER0_PATCH_SIZE = 13
-LAYER1_PATCH_SIZE = 21
-LAYER0_STRIDE = LAYER1_PATCH_SIZE - LAYER0_PATCH_SIZE
 
 def make_fprop(layer0, layer1):
     assert isinstance(layer0, ISAModel)
@@ -29,7 +27,7 @@ def make_fprop(layer0, layer1):
     Y_l0 = layer0.fprop_conv(X, stride=LAYER0_STRIDE)
     Y_l1 = layer1.fprop_conv(Y_l0)
     with timed_operation('compiling fprop'):
-        f = theano.function([X], Y)
+        f = theano.function([X], Y_l1)
 
     def fprop(x):
         if x.ndim == 3:
@@ -53,7 +51,8 @@ def make_fprop(layer0, layer1):
                   i::LAYER0_STRIDE, j::LAYER0_STRIDE, k::LAYER0_STRIDE] = y
             prog.trigger()
         prog.finish()
-        assert np.isfinite(np.sum(y_rst))
+        y = y_rst
+        assert np.isfinite(np.sum(y))
 
         if add_batch:
             assert y.shape[0] == 1
@@ -73,8 +72,10 @@ def main():
 
     fprop = make_fprop(serial.load(args.l0), serial.load(args.l1))
     x = serial.load(args.input)
+    logger.info('input shape: {}'.format(x.shape))
     y = fprop(x)
-    opath = args.input
+    logger.info('output shape: {}'.format(y.shape))
+    opath = args.output
     opath = opath[:opath.rfind('.')] + '.pkl'
     serial.dump(y, opath)
 

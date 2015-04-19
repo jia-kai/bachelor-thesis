@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: view_data.py
-# $Date: Sat Apr 18 16:29:19 2015 +0800
+# $Date: Sun Apr 19 21:07:02 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -36,11 +36,17 @@ def main():
     parser = argparse.ArgumentParser(
         description='view an 3D image',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-c', '--channel', type=int,
+                        help='select data channel')
     parser.add_argument('img_fpath')
     args = parser.parse_args()
 
     data = serial.load(args.img_fpath)
     print data.shape, data.dtype
+    if args.channel is not None:
+        assert data.ndim == 4
+        data = data[args.channel]
+    assert data.ndim == 3
     view_3d_data_simple(data)
 
 if __name__ == '__main__':
