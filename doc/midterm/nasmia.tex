@@ -1,0 +1,178 @@
+% $File: nasmia.tex
+% $Date: Mon Apr 20 22:58:50 2015 +0800
+% $Author: jiakai <jia.kai66@gmail.com>
+
+\documentclass {beamer}
+%\usetheme {JuanLesPins}
+\usetheme{Malmoe}
+%\usecolortheme{beaver}
+\usepackage{fontspec,amsmath,amssymb,verbatim,mathtools,tikz}
+
+% chinese
+\usepackage{zhspacing}
+\zhspacing
+%\usepackage[noindent,UTF8]{ctexcap}
+
+% biblatex
+\usepackage{biblatex}
+\bibliography{refs.bib}
+\defbibheading{bibliography}{\section{}}
+\setbeamertemplate{bibliography item}{\insertbiblabel}
+\renewcommand*{\bibfont}{\footnotesize}
+
+% math opr
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\trans}[1]{#1^\intercal}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+
+% others
+\newcommand{\addgraph}[2]{\begin{center}
+\includegraphics[width=#1\paperwidth]{#2}\end{center}}
+
+
+\title{基于深度学习的医学影像配准算法研究}
+\subtitle{中期检查}
+\author {贾开}
+\institute {清华大学}
+\date{\today}
+
+\begin{document}
+\frame[plain]{\titlepage
+    \begin{center}
+        \begin{tabular}{ll}
+            指导老师 & 宋亦旭 \\
+            报告人 &  贾开 \\
+            学号 & 2011011275
+        \end{tabular}
+    \end{center}
+}
+
+\AtBeginSection[]
+{
+    \begin{frame}<beamer>
+        \frametitle{Table of Contents}
+        \tableofcontents[currentsection]
+    \end{frame}
+}
+
+
+\begin{frame}{Table of Contents}
+    \tableofcontents
+\end{frame}
+
+\section{Current Progress}
+
+\subsection{The Model: ISA}
+% f{{{
+\begin{frame}{Motivation}
+    \begin{description}
+        \item[ISA] Independent Subspace Analysis
+        \item[Motivation] Maximize independence of features, while allowing
+            dependence inside subspaces with predefined structures.
+        \item[Pre-requirement] whitened data
+    \end{description}
+\end{frame}
+
+\begin{frame}{Interpretation 1}
+    Maximizing likelihood
+    \begin{eqnarray*}
+        \vec{s} &=& \vec{Wx} \\
+        u_i &=& \sqrt{\sum_{j \in S_i}s_j^2} \\
+        p(\vec{s}) &=& \prod_i{\frac{1}{Z_i}\exp\left(-\frac{u_i}{b}\right)} \\
+        \argmin_{\vec{W}} && \text{E}_{\vec{x}}\left[\sum_i u_i\right] \\
+        \text{subject to} && \vec{W}\trans{\vec{W}} = \vec{I}
+    \end{eqnarray*}
+\end{frame}
+
+\begin{frame}{Interpretation 2}
+    As a 2-layer neural network
+    \addgraph{0.8}{res/isa.png}
+    {\tiny image from \cite{le2011learning}}
+\end{frame}
+
+\begin{frame}{Interpretation 3}
+    Sparse coding with orthonormal regularizer.
+    \begin{eqnarray*}
+        \argmin_{\vec{W}} && \text{E}_{\vec{x}}\left[\sum_i u_i\right] \\
+        \text{subject to} && \vec{W}\trans{\vec{W}} = \vec{I}
+    \end{eqnarray*}
+\end{frame}
+
+\begin{frame}{Stacked ISA}
+    \addgraph{0.6}{res/isa-stack.png}
+    {\tiny image from \cite{wu2013unsupervised}}
+\end{frame}
+% f}}}
+
+\subsection{Optimization}
+% f{{{
+\begin{frame}{Optimization Method}
+    Batched gradient decent:
+    \begin{eqnarray*}
+        \vec{W} \leftarrow \vec{W} - \alpha
+        \frac{1}{N}\sum_{i=1}^N \frac{\partial{T(\vec{x_i};\vec{W})}}
+            {\partial{\vec{W}}}
+    \end{eqnarray*}
+\end{frame}
+
+\begin{frame}{Implementation Details}
+    \begin{description}
+        \item[Utilities] python2 + theano
+        \item[Parallel Computing] Data parallel on GPUs, both PCA and batched
+            gradient computing/update are parallelized.
+        \item[Network Structure]
+            \begin{tabular}{llll}
+                Layer & Input Patch Size & Hidden Ftr & Output Ftr \\
+                1 & $13\times13\times13$ & 300 & 150 \\
+                2 & $21\times21\times21$ & 200 & 50
+            \end{tabular}
+            Note: layer 1 convolution stride is 8, so actual layer 2 input size
+            is $150 \times 2 \times 2 \times 2$.
+        \item[Hardware]
+            Intel(R) Core(TM) i7-4930K CPU @ 3.40GHz,
+            55GiB RAM, 4 Nvidia Titan GPUs
+        \item[Efficiency] For layer 2: 5.5GiB training data, 15secs for PCA,
+            0.15secs for each iteration.
+    \end{description}
+\end{frame}
+% f}}}
+
+\subsection{Results}
+% f{{{
+\begin{frame}{Filters of Layer 1}
+    \addgraph{0.6}{res/filter.png}
+\end{frame}
+
+\begin{frame}{Feature Discriminability and Robustness}
+    \addgraph{0.7}{res/dist.png}
+\end{frame}
+% f}}}
+
+\section{Future Work}
+\begin{frame}{Problems and Future Work}
+    \begin{description}
+        \item[Major Problem] No handy tool for non-rigid registration with
+            custom features
+        \item[Future Work]
+            \begin{enumerate}
+                \item Try other feature learning methods
+                \item Test feature performance by rigid registration using
+                    RANSAC.
+            \end{enumerate}
+    \end{description}
+\end{frame}
+
+
+\section{ }
+\subsection{ }
+\frame{\begin{center}\huge{Thanks!}\end{center}}
+
+\section[]{References}
+\begin{frame}[allowframebreaks]{References}
+    \printbibliography
+\end{frame}
+
+\end{document}
+
+% vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
+
