@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: simple.py
-# $Date: Mon Apr 20 00:19:23 2015 +0800
+# $Date: Sat May 02 16:33:50 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
@@ -24,7 +24,8 @@ class SimpleData3DViewer(object):
         self._axis_pos = [0] * 3
         dmin = data.min()
         dmax = data.max()
-        self.data = ((data - dmin) * (255.0 / (dmax - dmin))).astype('uint8')
+        self.data = ((data - dmin) *
+                     (255.0 / (dmax - dmin + 1e-9))).astype('uint8')
         self.scale = scale
         self._onclick = onclick
         self._onaxischange = onaxischange
@@ -36,7 +37,7 @@ class SimpleData3DViewer(object):
             ax_name = chr(ord('x') + i)
             win_name = self._prefix + 'view_' + ax_name
             fshow = functools.partial(self._showimg, win_name=win_name, axis=i)
-            pos = self.data.shape[i] / 2 if i != 2 else 0
+            pos = self.data.shape[i] / 2
             fshow(pos)
             cv2.createTrackbar(ax_name, win_name,
                                pos, self.data.shape[i] - 1, fshow)
