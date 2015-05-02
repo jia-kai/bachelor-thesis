@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: simple.py
-# $Date: Mon Apr 20 00:19:23 2015 +0800
+# $Date: Tue Apr 21 23:03:53 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
@@ -20,7 +20,7 @@ class SimpleData3DViewer(object):
                  waitkey=True, prefix=''):
         """:param onclick: callback, (x, y, z)
         :param onaxischange: callback, (axis, pos)"""
-        assert data.ndim == 3
+        assert data.ndim in (3, 4)
         self._axis_pos = [0] * 3
         dmin = data.min()
         dmax = data.max()
