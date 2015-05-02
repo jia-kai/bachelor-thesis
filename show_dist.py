@@ -1,11 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: show_dist.py
-# $Date: Mon Apr 20 00:14:05 2015 +0800
+# $Date: Sat May 02 16:35:12 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
-from nasmia.visualize import view_3d_data_simple
+from nasmia.visualize import view_3d_data_single
 from nasmia.math.ISA.config import LAYER1_PATCH_SIZE
 
 import numpy as np
@@ -35,9 +35,9 @@ class ShowDist(object):
         self._img_shape = np.array(img0.shape)
         self._ftr0 = ftr0
         self._ftr1 = ftr1
-        view_3d_data_simple(img0, onclick=self._on_img0_click, waitkey=False,
+        view_3d_data_single(img0, onclick=self._on_img0_click, waitkey=False,
                             prefix='img0_')
-        view_3d_data_simple(img1, onaxischange=self._on_img1_axis_change,
+        view_3d_data_single(img1, onaxischange=self._on_img1_axis_change,
                             waitkey=False, prefix='img1_')
         while True:
             key = chr(cv2.waitKey(-1) & 0xFF)

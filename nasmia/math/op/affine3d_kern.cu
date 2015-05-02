@@ -1,6 +1,6 @@
 /*
  * $File: affine3d_kern.cu
- * $Date: Thu Apr 30 22:55:17 2015 +0800
+ * $Date: Fri May 01 19:06:40 2015 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
  */
 
@@ -15,7 +15,7 @@ __device__ int max(int a, int b) {
 
 template<int axis>
 __device__ void batched_affine3d_impl(
-        float *dest, const float *src, const float *rev_affine_mat,
+        float *dest, const float *src, const float *inv_affine_mat,
         int tot_size, int odim2, int odim1, int odim0,
         int idim2, int idim1, int idim0) {
 
@@ -45,7 +45,7 @@ __device__ void batched_affine3d_impl(
     x2_ = offset % odim2; offset /= odim2;
     batch = offset;
 
-    float const * const m = rev_affine_mat + batch * 16;
+    float const * const m = inv_affine_mat + batch * 12;
     float
         dx0 = m[axis], dx1 = m[4 + axis], dx2 = m[8 + axis],
         x0 = m[0] * x0_ + m[1] * x1_ + m[2] * x2_ + m[3],
@@ -83,13 +83,13 @@ __device__ void batched_affine3d_impl(
  *      interpolation; dest and src are of the same size
  * \param dest nr_batch * odim2 * odim1 * odim0 image array
  * \param src nr_batch * idim2 * idim1 * idim0 image array
- * \param rev_affine_mat matrix to transform coordinates on dest onto src;
+ * \param inv_affine_mat matrix to transform coordinates on dest onto src;
  *      shape: nr_batch * 3 * 4 matrix to describe the transformation for each
  *      image
  * \param tot_size total size of output array
  */
 extern "C" __global__ void batched_affine3d(
-            float *dest, const float *src, const float *rev_affine_mat,
+            float *dest, const float *src, const float *inv_affine_mat,
             int tot_size, int odim2, int odim1, int odim0,
             int idim2, int idim1, int idim0) {
     void (*fptr)(float*, const float*, const float*, int, int, int, int, int,
@@ -101,7 +101,7 @@ extern "C" __global__ void batched_affine3d(
     else
         fptr = &batched_affine3d_impl<0>;
 
-    return fptr(dest, src, rev_affine_mat,
+    return fptr(dest, src, inv_affine_mat,
             tot_size, odim2, odim1, odim0,
             idim2, idim1, idim0);
 }

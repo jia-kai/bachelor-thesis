@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-# $File: simple.py
-# $Date: Sat May 02 16:33:50 2015 +0800
+# $File: single3d.py
+# $Date: Sat May 02 16:34:22 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
 
+import numpy as np
 import cv2
 
-class SimpleData3DViewer(object):
+class Single3DDataViewer(object):
     data = None
     scale = None
     _waitkey = None
@@ -16,7 +17,7 @@ class SimpleData3DViewer(object):
     _onaxischange = None
     _prefix=None
 
-    def __init__(self, data, scale=1, onclick=None, onaxischange=None,
+    def __init__(self, data, scale=None, onclick=None, onaxischange=None,
                  waitkey=True, prefix=''):
         """:param onclick: callback, (x, y, z)
         :param onaxischange: callback, (axis, pos)"""
@@ -26,6 +27,8 @@ class SimpleData3DViewer(object):
         dmax = data.max()
         self.data = ((data - dmin) *
                      (255.0 / (dmax - dmin + 1e-9))).astype('uint8')
+        if scale is None:
+            scale = max(400 / np.max(data.shape), 1)
         self.scale = scale
         self._onclick = onclick
         self._onaxischange = onaxischange

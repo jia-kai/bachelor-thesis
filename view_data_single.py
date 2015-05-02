@@ -1,11 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-# $File: view_data.py
-# $Date: Sun Apr 19 21:07:02 2015 +0800
+# $File: view_data_single.py
+# $Date: Fri May 01 23:28:31 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
-from nasmia.visualize import view_3d_data_simple
+from nasmia.visualize import view_3d_data_single
 
 import numpy as np
 import cv2
@@ -47,7 +47,7 @@ def main():
         assert data.ndim == 4
         data = data[args.channel]
     assert data.ndim == 3
-    view_3d_data_simple(data)
+    view_3d_data_single(data)
 
 if __name__ == '__main__':
     main()

@@ -1,12 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: crop_patch.py
-# $Date: Sat Mar 28 23:28:09 2015 +0800
+# $Date: Fri May 01 23:27:32 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.thirdparty import nrrd
 from nasmia.utils import serial, ProgressReporter
-from nasmia.visualize import view_3d_data_simple
 
 import numpy as np
 
