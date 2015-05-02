@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: single3d.py
-# $Date: Sat May 02 16:34:22 2015 +0800
+# $Date: Sat May 02 22:03:00 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
@@ -28,8 +28,8 @@ class Single3DDataViewer(object):
         self.data = ((data - dmin) *
                      (255.0 / (dmax - dmin + 1e-9))).astype('uint8')
         if scale is None:
-            scale = max(400 / np.max(data.shape), 1)
-        self.scale = scale
+            scale = 400 / np.max(data.shape)
+        self.scale = int(max(scale, 1))
         self._onclick = onclick
         self._onaxischange = onaxischange
         self._waitkey = waitkey
@@ -66,9 +66,11 @@ class Single3DDataViewer(object):
             self._onaxischange(axis, pos)
 
     def _on_mouse(self, event, y, x, *args, **kwargs):
-        axis = kwargs['axis']
         if self._onclick is None or event != cv2.EVENT_LBUTTONDOWN:
             return
+        x /= self.scale
+        y /= self.scale
+        axis = kwargs['axis']
         coord = [x, y]
         coord.insert(axis, self._axis_pos[axis])
         self._onclick(*coord)

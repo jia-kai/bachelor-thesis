@@ -1,12 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: show_dist.py
-# $Date: Sat May 02 16:35:12 2015 +0800
+# $Date: Sat May 02 22:01:17 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
 from nasmia.visualize import view_3d_data_single
-from nasmia.math.ISA.config import LAYER1_PATCH_SIZE
 
 import numpy as np
 import cv2
@@ -22,16 +21,23 @@ class ShowDist(object):
     _ftr1_sub = None
     _ftr1_slice = None
     _img_shape = None
+    _conv_shape = None
 
     def __init__(self, img0, ftr0, img1, ftr1):
         logger.info('img shape: {}; feature shape: {}'.format(
             img0.shape, ftr0.shape))
         assert img0.shape == img1.shape and ftr0.shape == ftr1.shape
         assert ftr0.ndim == 4 and img0.ndim == 3
+
+        conv_shape = None
         for i in range(3):
-            assert (
-                ftr0.shape[i + 1] == img0.shape[i] - LAYER1_PATCH_SIZE + 1), (
-                    ftr0.shape, img0.shape)
+            s = img0.shape[i] + 1 - ftr0.shape[i + 1]
+            if conv_shape is None:
+                conv_shape = s
+            else:
+                assert conv_shape == s
+        self._conv_shape = conv_shape
+
         self._img_shape = np.array(img0.shape)
         self._ftr0 = ftr0
         self._ftr1 = ftr1
@@ -51,9 +57,11 @@ class ShowDist(object):
         if self._ftr1_sub is None:
             logger.warn('no suitable slice')
             return
-        border = LAYER1_PATCH_SIZE / 2
-        if min(x, y, z, np.min(self._img_shape - [x, y, z])) < border:
-            logger.warn('click out of feature boundary')
+        border = self._conv_shape / 2
+        min_dist = min(x, y, z, np.min(self._img_shape - [x, y, z]))
+        if min_dist < border:
+            logger.warn('click out of feature boundary: min_dist={}'.format(
+                min_dist))
             return
         x -= border
         y -= border
@@ -67,7 +75,7 @@ class ShowDist(object):
         fig.show()
 
     def _on_img1_axis_change(self, axis, pos):
-        border = LAYER1_PATCH_SIZE / 2
+        border = self._conv_shape / 2
         if min(pos, self._img_shape[axis] - pos) < border:
             self._ftr1_sub = None
             return
