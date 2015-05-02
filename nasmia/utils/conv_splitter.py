@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: conv_splitter.py
-# $Date: Sun Apr 05 15:57:25 2015 +0800
+# $Date: Sat May 02 21:21:48 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from . import ProgressReporter
@@ -57,7 +57,7 @@ class ConvSplitter(object):
         finally:
             if self.progress:
                 self._prog_report.finish()
-        assert not np.isnan(output.sum())
+        assert np.isfinite(output.sum())
         return output
 
     def _work(self, x, y, axis):

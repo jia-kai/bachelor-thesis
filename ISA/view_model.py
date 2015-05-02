@@ -1,12 +1,12 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: view_model.py
-# $Date: Sun Apr 05 11:59:33 2015 +0800
+# $Date: Fri May 01 23:28:53 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA.model import ISAModel
 from nasmia.utils import serial
-from nasmia.visualize import view_3d_data_simple
+from nasmia.visualize import view_3d_data_single
 
 import cv2
 import numpy as np
@@ -28,8 +28,8 @@ def main():
     assert patch_size ** 3 == model.coeff.shape[1]
     patch_shape = (patch_size, patch_size, patch_size)
 
-    #view_3d_data_simple(-model.bias.reshape(patch_shape), 10)
-    #view_3d_data_simple(model.coeff[3].reshape(patch_shape), 10)
+    #view_3d_data_single(-model.bias.reshape(patch_shape), 10)
+    #view_3d_data_single(model.coeff[3].reshape(patch_shape), 10)
 
     data = model.coeff
     data = data.reshape(data.shape[0], patch_size, patch_size, patch_size)

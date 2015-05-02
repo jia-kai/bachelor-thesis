@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # $File: serial.py
-# $Date: Sat Apr 18 16:25:01 2015 +0800
+# $Date: Fri May 01 11:37:01 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ..thirdparty import nrrd
 
 import joblib
+import nibabel as nib
+
 import cPickle as pickle
 
 def load(fpath, require_type=None, return_nrrd_options=False):
@@ -16,7 +18,6 @@ def load(fpath, require_type=None, return_nrrd_options=False):
             return data, options
         return data
     if '.nii' in fpath:
-        import nibabel as nib
         return nib.load(fpath).get_data()
     try:
         obj = joblib.load(fpath)

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-# $File: simple.py
-# $Date: Tue Apr 21 23:03:53 2015 +0800
+# $File: single3d.py
+# $Date: Sat May 02 22:06:35 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
 
+import numpy as np
 import cv2
 
-class SimpleData3DViewer(object):
+class Single3DDataViewer(object):
     data = None
     scale = None
     _waitkey = None
@@ -16,7 +17,7 @@ class SimpleData3DViewer(object):
     _onaxischange = None
     _prefix=None
 
-    def __init__(self, data, scale=1, onclick=None, onaxischange=None,
+    def __init__(self, data, scale=None, onclick=None, onaxischange=None,
                  waitkey=True, prefix=''):
         """:param onclick: callback, (x, y, z)
         :param onaxischange: callback, (axis, pos)"""
@@ -24,8 +25,11 @@ class SimpleData3DViewer(object):
         self._axis_pos = [0] * 3
         dmin = data.min()
         dmax = data.max()
-        self.data = ((data - dmin) * (255.0 / (dmax - dmin))).astype('uint8')
-        self.scale = scale
+        self.data = ((data - dmin) *
+                     (255.0 / (dmax - dmin + 1e-9))).astype('uint8')
+        if scale is None:
+            scale = 400 / np.max(data.shape)
+        self.scale = int(max(scale, 1))
         self._onclick = onclick
         self._onaxischange = onaxischange
         self._waitkey = waitkey
@@ -36,7 +40,7 @@ class SimpleData3DViewer(object):
             ax_name = chr(ord('x') + i)
             win_name = self._prefix + 'view_' + ax_name
             fshow = functools.partial(self._showimg, win_name=win_name, axis=i)
-            pos = self.data.shape[i] / 2 if i != 2 else 0
+            pos = self.data.shape[i] / 2
             fshow(pos)
             cv2.createTrackbar(ax_name, win_name,
                                pos, self.data.shape[i] - 1, fshow)
@@ -62,9 +66,11 @@ class SimpleData3DViewer(object):
             self._onaxischange(axis, pos)
 
     def _on_mouse(self, event, y, x, *args, **kwargs):
-        axis = kwargs['axis']
         if self._onclick is None or event != cv2.EVENT_LBUTTONDOWN:
             return
+        x /= self.scale
+        y /= self.scale
+        axis = kwargs['axis']
         coord = [x, y]
         coord.insert(axis, self._axis_pos[axis])
         self._onclick(*coord)
