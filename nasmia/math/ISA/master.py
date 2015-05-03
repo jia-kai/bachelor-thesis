@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: master.py
-# $Date: Sun Apr 19 23:17:39 2015 +0800
+# $Date: Sun May 03 16:49:52 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from .common import ISAParam, SharedValue
@@ -101,7 +101,7 @@ class ISA(object):
         cov = acc.get().reshape(self._isa_param.in_dim, self._isa_param.in_dim)
         cov /= self._nr_data
 
-        # eigen decomposition and get
+        # eigen decomposition
         eig_val, eig_vec = np.linalg.eigh(cov)
         idx = eig_val.argsort()[::-1]
         eig_val = eig_val[idx]
@@ -153,10 +153,17 @@ class ISA(object):
         w[:] = eig_vec.dot(np.diag(1.0 / np.sqrt(eig_val))).dot(
             eig_vec.T).dot(w)
 
+    def _do_get_model(self, coeff):
+        coeff = np.array(coeff)
+        return ISAModel(
+            coeff=coeff,
+            bias=-coeff.dot(self._shared_val.data_mean),
+            outhid_conn=self._isa_param.make_outid_conn_mat())
+
     def get_model(self):
         sv = self._shared_val
         coeff = np.array(sv.isa_weight.dot(sv.data_whitening))
-        return ISAModel(
-            coeff=coeff,
-            bias=-coeff.dot(sv.data_mean),
-            outhid_conn=self._isa_param.make_outid_conn_mat())
+        return self._do_get_model(coeff)
+
+    def get_model_pcaonly(self):
+        return self._do_get_model(self._shared_val.data_whitening)
