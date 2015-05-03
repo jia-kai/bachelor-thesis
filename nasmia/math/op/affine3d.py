@@ -1,44 +1,41 @@
 # -*- coding: utf-8 -*-
 # $File: affine3d.py
-# $Date: Fri May 01 22:25:34 2015 +0800
+# $Date: Sun May 03 02:39:19 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
-import pycuda.driver as drv
-from pycuda.compiler import SourceModule, DEFAULT_NVCC_FLAGS
+from ...utils import serial
 import numpy as np
 
-import atexit
+import ctypes
 import os
+import logging
+logger = logging.getLogger(__name__)
 
-NR_THREAD_PER_BLOCK = 128
+_kerndir = os.path.join(os.path.dirname(__file__), 'affine3d_kern')
+if os.system('make -C {} >/dev/null'.format(_kerndir)):
+    raise RuntimeError('failed to compile')
+_lib = ctypes.cdll.LoadLibrary(
+    os.path.join(_kerndir, 'libaffine3d.so'))
+_kernfunc = _lib.batched_affine3d
+_kernfunc.argtypes = (
+    [ctypes.POINTER(ctypes.c_float)] * 3 +
+    [ctypes.c_int] * 8)
+_kernfunc.restype = ctypes.c_int
 
-DEFAULT_NVCC_FLAGS.append('-ccbin=g++-4.8')
-CACHE_DIR = '/tmp/nasmia_pycuda_cache'
-if not os.path.isdir(CACHE_DIR):
-    os.mkdir(CACHE_DIR)
+def _np_ptr(arr):
+    assert arr.dtype == np.float32
+    return arr.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 
-func = None
+def fmtarr(v):
+    if (isinstance(v, np.ndarray) and v.flags['C_CONTIGUOUS'] and
+            v.dtype == np.float32):
+        return v
+    return np.ascontiguousarray(np.asarray(v).astype(np.float32))
 
 def batched_affine3d(src, inv_affine_mat, oshape=None, gpuid=0):
-    global func
-    if func is None:
-        drv.init()
-        ctx = drv.Device(gpuid).make_context()
-        atexit.register(ctx.detach)
-        mod = SourceModule(
-            open(os.path.join(os.path.dirname(__file__),
-                              'affine3d_kern.cu')).read(),
-            no_extern_c=True, cache_dir=CACHE_DIR)
-        func = mod.get_function('batched_affine3d')
-        func.set_cache_config(drv.func_cache.PREFER_L1)
-
-    return _batched_affine3d(src, inv_affine_mat, oshape)
-
-def _batched_affine3d(src, inv_affine_mat, oshape):
     """:param inv_affine_mat: maps coord on dest to src
     :param oshape: tuple of output shape"""
 
-    fmtarr = lambda v: np.ascontiguousarray(np.asarray(v).astype(np.float32))
     src = fmtarr(src)
     if inv_affine_mat.ndim == 2:
         inv_affine_mat = np.tile(inv_affine_mat, (src.shape[0], 1, 1))
@@ -48,25 +45,31 @@ def _batched_affine3d(src, inv_affine_mat, oshape):
             inv_affine_mat.shape[1:] == (3, 4)), \
         'bad shape: src={} inv_affine_mat={}'.format(
             src.shape, inv_affine_mat.shape)
+    assert min(src.shape[1:]) >= 2, 'src image must be at least 2 pixels wide'
 
     if oshape is None:
         oshape = src.shape[1:]
     assert len(oshape) == 3
-    dest = np.empty([src.shape[0]] + list(oshape), dtype=np.float32)
-    dest.fill(np.nan)
+    batch = src.shape[0]
+    dest = np.empty([batch] + list(oshape), dtype=np.float32)
 
-    computing_size = dest.size / np.min(dest.shape[1:])
-    block = (min(NR_THREAD_PER_BLOCK, computing_size), 1, 1)
-    grid = ((computing_size - 1) / block[0] + 1, 1)
-
+    ptrargs = list(map(
+        _np_ptr,
+        [dest, src, inv_affine_mat]))
     iargs = list(map(
-        np.int32,
-        [dest.size] + list(dest.shape[1:]) + list(src.shape[1:])))
+        int,
+        [batch] + list(dest.shape[1:]) + list(src.shape[1:]) + [gpuid]))
 
-    func(drv.Out(dest), drv.In(src), drv.In(inv_affine_mat), *iargs,
-         block=block, grid=grid)
+    err = _kernfunc(*(ptrargs + iargs))
 
-    assert np.isfinite(dest.sum())
+    if (not np.isfinite(dest.sum())) or err:
+        dump_path = '/tmp/affine3d-bad-param.pkl'
+        serial.dump((src, inv_affine_mat, oshape, dest), dump_path)
+        raise RuntimeError(
+            'batched_affine3d failed: dsum={} err={}, '
+            'param dumped to {}'.format(
+                dest.sum(), err, dump_path))
+
     return dest
 
 def afdot(*args):
