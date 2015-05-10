@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: train.py
-# $Date: Sun Apr 05 20:09:07 2015 +0800
+# $Date: Sun May 10 20:16:29 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA import ISA, ISAParam
@@ -22,7 +22,8 @@ def main():
     parser.add_argument('--out_dim', type=int, default=150,
                         help='output dimension (i.e. number of subspaces)')
     parser.add_argument('--nr_worker', type=int, default=4)
-    parser.add_argument('--gpus', default='0,1,2,3')
+    parser.add_argument('--gpus', default='0,1,2,3',
+                        help='list of gpus to use')
     parser.add_argument('--dump_iter', type=int, default=10,
                         help='number of iters between model dump')
     parser.add_argument('--learning_rate', type=float, default=2)

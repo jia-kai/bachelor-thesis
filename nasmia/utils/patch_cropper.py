@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: patch_cropper.py
-# $Date: Sat May 02 00:14:02 2015 +0800
+# $Date: Sun May 10 20:59:54 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import numpy as np
@@ -28,6 +28,10 @@ class CropPatchHelper(object):
 
     def __call__(self, data, mask=None):
         """:return: generator to iterate through subpatches"""
+        offset = -data.min()
+        if offset:
+            data = data + offset
+
         if mask is None:
             axrange = self._find_axis_range(
                 data, data.mean() * self.intensity_thresh_coeff)
@@ -39,7 +43,7 @@ class CropPatchHelper(object):
 
         self._cur_dynrange_thresh = data.max() * self.dynrange_thresh_coeff
         for idx, (i, j) in enumerate(axrange):
-            assert j - i > self._patch_size * 2
+            assert j - i > self._patch_size * 2, (idx, i, j)
             axrange[idx] = (i, j - self._patch_size + 1)
 
         self._used = np.zeros_like(data, dtype='float32')
@@ -58,6 +62,8 @@ class CropPatchHelper(object):
             self._used[idx] += 1.0 / sub.size
             if self._bg_extend:
                 sub = data[self._extend_np_idx(idx)]
+            if offset:
+                sub = sub - offset
             yield sub
 
     def _extend_np_idx(self, idx):

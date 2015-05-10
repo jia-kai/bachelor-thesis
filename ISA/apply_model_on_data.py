@@ -1,12 +1,13 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: apply_model_on_data.py
-# $Date: Sun Apr 19 23:25:34 2015 +0800
+# $Date: Sun May 10 22:27:38 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial, timed_operation, ProgressReporter
 from nasmia.math.ISA.model import ISAModel
 from nasmia.math.ISA.config import LAYER1_PATCH_SIZE, LAYER0_STRIDE
+from nasmia.io import ModelEvalOutput
 
 import theano.tensor as T
 import theano
@@ -78,8 +79,12 @@ def main():
     y = fprop(x)
     logger.info('output shape: {}'.format(y.shape))
     opath = args.output
-    opath = opath[:opath.rfind('.')] + '.pkl'
-    serial.dump(y, opath)
+    if '.' in opath and ('/' not in opath or '.' in opath[opath.rfind('/'):]):
+        opath = opath[:opath.rfind('.')] + '.pkl'
+    else:
+        opath += '.pkl'
+    serial.dump(ModelEvalOutput(img=x, ftr=y), opath)
+    logger.info('result wrote to {}'.format(opath))
 
 if __name__ == '__main__':
     main()

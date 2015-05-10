@@ -1,6 +1,6 @@
 /*
  * $File: affine3d_kern.cu
- * $Date: Sun May 03 02:43:53 2015 +0800
+ * $Date: Sun May 10 00:07:50 2015 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
  */
 
@@ -28,20 +28,20 @@ __global__ void batched_affine3d_impl(
         int idim2, int idim1, int idim0) {
 
     int idx_tot = blockIdx.x * blockDim.x + threadIdx.x,
-        stride_axis = 1, dim_axis = odim0;
+        ostride_axis = 1, odim_axis = odim0;
 
     if (axis == 1) {
-        dim_axis = odim1;
-        stride_axis = odim0;
+        odim_axis = odim1;
+        ostride_axis = odim0;
     }
 
     if (axis == 2) {
-        dim_axis = odim2;
-        stride_axis = odim0 * odim1;
+        odim_axis = odim2;
+        ostride_axis = odim0 * odim1;
     }
 
-    int offset = idx_tot / stride_axis * (stride_axis * dim_axis) +
-                idx_tot % stride_axis;
+    int offset = idx_tot / ostride_axis * (ostride_axis * odim_axis) +
+                idx_tot % ostride_axis;
 
     if (offset >= tot_osize)
         return;
@@ -55,15 +55,15 @@ __global__ void batched_affine3d_impl(
 
     float const * const m = inv_affine_mat + batch * 12;
     float
-        dx0 = m[axis], dx1 = m[4 + axis], dx2 = m[8 + axis],
-        x0 = m[0] * x0_ + m[1] * x1_ + m[2] * x2_ + m[3],
-        x1 = m[4] * x0_ + m[5] * x1_ + m[6] * x2_ + m[7],
-        x2 = m[8] * x0_ + m[9] * x1_ + m[10] * x2_ + m[11];
+        dx2 = m[2 - axis], dx1 = m[6 - axis], dx0 = m[10 - axis],
+        x2 = m[0] * x2_ + m[1] * x1_ + m[2] * x0_ + m[3],
+        x1 = m[4] * x2_ + m[5] * x1_ + m[6] * x0_ + m[7],
+        x0 = m[8] * x2_ + m[9] * x1_ + m[10] * x0_ + m[11];
 
     int istride1 = idim0,
-        istride2 = idim1 * idim0;
+        istride2 = idim1 * istride1;
     src += batch * (istride2 * idim2);
-    for (int i = 0; i < dim_axis; i ++) {
+    for (int i = 0; i < odim_axis; i ++) {
         float x0f = floor(x0), x1f = floor(x1), x2f = floor(x2);
         int x0i = min(max(int(x0f), 0), idim0 - 2),
             x1i = min(max(int(x1f), 0), idim1 - 2),
@@ -81,7 +81,7 @@ __global__ void batched_affine3d_impl(
               itv1 = itv10 * (1 - x1f) + itv11 * x1f,
               itv = itv0 * (1 - x2f) + itv1 * x2f;
         *dest = itv;
-        dest += stride_axis;
+        dest += ostride_axis;
         x0 += dx0; x1 += dx1; x2 += dx2;
     }
 }

@@ -1,10 +1,11 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: crop_patch_l1.py
-# $Date: Fri May 01 23:27:37 2015 +0800
+# $Date: Sun May 10 20:56:51 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial, ProgressReporter
+from nasmia.utils.patch_cropper import CropPatchHelper
 from nasmia.math.ISA.config import LAYER1_PATCH_SIZE
 
 import numpy as np
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class PatchCropper(object):
     _prog = None
-    _rng = None
+    _helper = None
     _output = None
     _output_idx = 0
 
@@ -39,7 +40,8 @@ class PatchCropper(object):
             self._output.size * 4 / 1024.0**3))
 
         self._prog = ProgressReporter('crop', self.nr_patch)
-        self._rng = np.random.RandomState(args.seed)
+        self._helper = CropPatchHelper(
+            args.patch_size, 0, rng=np.random.RandomState(args.seed))
 
         for fpath in flist:
             fpath = fpath.strip()
@@ -73,48 +75,16 @@ class PatchCropper(object):
         return self._output.shape[1]
 
     def _work_single(self, data, args):
-        thresh = data.mean() * 0.8
-        axrange = self._find_axis_range(data, thresh)
-        for idx, (i, j) in enumerate(axrange):
-            assert j - i > args.patch_size * 2
-            axrange[idx] = (i, j - args.patch_size + 1)
-
-        def gen_subpatch():
-            r = lambda v: self._rng.randint(*v)
-            sub = [slice(v, v + args.patch_size)
-                   for v in map(r, axrange)]
-            return data[tuple(sub)]
+        it = self._helper(data)
 
         for i in range(args.patch_per_img):
-            while True:
-                sub = gen_subpatch()
-                if sub.mean() >= thresh:
-                    break
-            self._fprop_inp[i] = sub
+            self._fprop_inp[i, 0] = next(it)
 
         s = self._output_idx
         t = s + args.patch_per_img
         self._output[:, s:t] = self._fprop_l0().T
         self._output_idx = t
         self._prog.trigger(t - s)
-
-    def _find_axis_range(self, data, thresh):
-        rst = []
-        for axis in range(data.ndim):
-            def visit(v):
-                idx = [slice(None)] * data.ndim
-                idx[axis] = v
-                tup = tuple(idx)
-                return data[tup]
-            low = 0
-            while visit(low).mean() < thresh:
-                low += 1
-            high = data.shape[axis] - 1
-            while visit(high).mean() < thresh:
-                high -= 1
-            assert low < high
-            rst.append((low, high + 1))
-        return rst
 
 
 def main():

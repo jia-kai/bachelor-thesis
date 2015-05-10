@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: test_affine_3d.py
-# $Date: Sun May 03 17:57:30 2015 +0800
+# $Date: Sun May 10 00:09:00 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op.affine3d import batched_affine3d, RandomAffineMat
@@ -33,6 +33,8 @@ def main():
     parser.add_argument('--angle', type=float, default=30,
                         help='max rotate angle in degrees')
     parser.add_argument('-o', '--output', help='write output to file')
+    parser.add_argument('--identity', action='store_true',
+                        help='use identity transform')
     args = parser.parse_args()
 
     add_axis = False
@@ -47,15 +49,19 @@ def main():
             inp = np.expand_dims(inp, axis=0)
         assert inp.ndim == 4
 
-        #affine_mat = np.tile(np.eye(4), (inp.shape[0], 1, 1))
-
-        zl, yl, xl = inp.shape[1:]
-        affine_mat = RandomAffineMat(
-            inp.shape[0], center=(xl / 2, yl / 2, zl / 2),
-            min_angle=math.radians(-args.angle),
-            max_angle=math.radians(args.angle))()
-        affine_mat[:, :, 3] += args.border / 2
-        oshp = (zl - args.border, yl - args.border, xl - args.border)
+        if args.identity:
+            affine_mat = np.tile(np.eye(4), (inp.shape[0], 1, 1))[:, :3]
+            oshp = inp.shape[1:]
+        else:
+            xl, yl, zl = inp.shape[1:]
+            affine_mat = RandomAffineMat(
+                inp.shape[0], center=(xl / 2, yl / 2, zl / 2),
+                min_angle=math.radians(-args.angle),
+                max_angle=math.radians(args.angle))()
+            affine_mat[:, :, 3] += args.border / 2
+            oshp = (xl - args.border, yl - args.border, zl - args.border)
+            if affine_mat.shape[0] == 1:
+                print 'affine mat:', affine_mat[0]
     else:
         assert args.load, 'must provide -i or -l'
         inp, affine_mat, oshp, orig_out = serial.load(args.load)
