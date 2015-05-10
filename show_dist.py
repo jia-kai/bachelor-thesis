@@ -1,11 +1,12 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: show_dist.py
-# $Date: Sun May 03 17:32:23 2015 +0800
+# $Date: Sun May 10 22:39:46 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
 from nasmia.visualize import view_3d_data_single
+from nasmia.io import ModelEvalOutput
 
 import numpy as np
 import cv2
@@ -26,14 +27,17 @@ class ShowDist(object):
 
     def __init__(self, img0, ftr0, img1, ftr1, dist_measure):
         self._dist_measure = dist_measure
-        logger.info('img shape: {}; feature shape: {}'.format(
+        logger.info('img0: img shape: {}; feature shape: {}'.format(
             img0.shape, ftr0.shape))
-        assert img0.shape == img1.shape and ftr0.shape == ftr1.shape
+        logger.info('img1: img shape: {}; feature shape: {}'.format(
+            img1.shape, ftr1.shape))
         assert ftr0.ndim == 4 and img0.ndim == 3
+        assert ftr1.ndim == 4 and img1.ndim == 3
 
         conv_shape = None
         for i in range(3):
             s = img0.shape[i] + 1 - ftr0.shape[i + 1]
+            assert s == img1.shape[i] + 1 - ftr1.shape[i + 1]
             if conv_shape is None:
                 conv_shape = s
             else:
@@ -121,10 +125,10 @@ def main():
                         help='distance measure')
     args = parser.parse_args()
 
-    pack0 = serial.load(args.pack0)
-    pack1 = serial.load(args.pack1)
-    ShowDist(pack0['img'], pack0['ftr'],
-             pack1['img'], pack1['ftr'],
+    pack0 = serial.load(args.pack0, ModelEvalOutput)
+    pack1 = serial.load(args.pack1, ModelEvalOutput)
+    ShowDist(pack0.img, pack0.ftr,
+             pack1.img, pack1.ftr,
              args.measure)
 
 if __name__ == '__main__':
