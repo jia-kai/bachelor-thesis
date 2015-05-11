@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-# $File: gen_expr.py
-# $Date: Mon May 11 19:40:57 2015 +0800
+# $File: calc_border_dist_impl_gen_expr.py
+# $Date: Mon May 11 20:54:46 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import itertools

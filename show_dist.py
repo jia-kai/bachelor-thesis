@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: show_dist.py
-# $Date: Sun May 10 22:39:46 2015 +0800
+# $Date: Mon May 11 21:05:29 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -25,24 +25,25 @@ class ShowDist(object):
     _conv_shape = None
     _dist_measure = None
 
-    def __init__(self, img0, ftr0, img1, ftr1, dist_measure):
+    def __init__(self, pack0, pack1, dist_measure):
         self._dist_measure = dist_measure
+        assert isinstance(pack0, ModelEvalOutput)
+        assert isinstance(pack1, ModelEvalOutput)
+        ftr0 = pack0.ftr
+        ftr1 = pack1.ftr
+        img0 = pack0.img
+        img1 = pack1.img
+
         logger.info('img0: img shape: {}; feature shape: {}'.format(
             img0.shape, ftr0.shape))
         logger.info('img1: img shape: {}; feature shape: {}'.format(
             img1.shape, ftr1.shape))
+
         assert ftr0.ndim == 4 and img0.ndim == 3
         assert ftr1.ndim == 4 and img1.ndim == 3
 
-        conv_shape = None
-        for i in range(3):
-            s = img0.shape[i] + 1 - ftr0.shape[i + 1]
-            assert s == img1.shape[i] + 1 - ftr1.shape[i + 1]
-            if conv_shape is None:
-                conv_shape = s
-            else:
-                assert conv_shape == s
-        self._conv_shape = conv_shape
+        self._conv_shape = pack0.conv_shape
+        assert self._conv_shape == pack1.conv_shape
 
         self._img_shape = np.array(img0.shape)
         self._ftr0 = ftr0
@@ -127,9 +128,7 @@ def main():
 
     pack0 = serial.load(args.pack0, ModelEvalOutput)
     pack1 = serial.load(args.pack1, ModelEvalOutput)
-    ShowDist(pack0.img, pack0.ftr,
-             pack1.img, pack1.ftr,
-             args.measure)
+    ShowDist(pack0, pack1, args.measure)
 
 if __name__ == '__main__':
     main()

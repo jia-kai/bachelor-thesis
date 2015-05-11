@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: affine_normalize_img.py
-# $Date: Sun May 10 20:56:21 2015 +0800
+# $Date: Mon May 11 21:14:36 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op.affine3d import batched_affine3d
@@ -35,7 +35,7 @@ def load_and_normalize(fpath, scale):
     return rst[0]
 
 
-def apply_mask(image, mask, enlarge):
+def apply_mask(image, mask, enlarge, min_border):
     mask = (mask >= mask.max() / 2).astype('float32')
     subidx = []
     for axis in range(image.ndim):
@@ -51,7 +51,8 @@ def apply_mask(image, mask, enlarge):
         while not visit(high):
             high -= 1
         assert low < high
-        delta = (high - low) * (enlarge - 1) / 2
+        low0, high0 = low, high
+        delta = int(max((high - low) * (enlarge - 1) / 2, min_border))
         low = max(0, low - delta)
         high = min(image.shape[axis], high + delta)
         subidx.append(slice(low, high + 1))
@@ -72,6 +73,8 @@ def main():
                         help='scale of output image')
     parser.add_argument('--mask_crop_enlarge', type=float, default=1.2,
                         help='enlarge factor for mask crop box')
+    parser.add_argument('--min_mask_border', type=int, default=0,
+                        help='minimum distance from mask to border')
     parser.add_argument('-o', '--output', required=True,
                         help='output filename; do not include extension')
     args = parser.parse_args()
@@ -80,7 +83,8 @@ def main():
     if args.mask:
         mask = load_and_normalize(args.mask, args.scale)
         assert image.shape == mask.shape
-        image, mask = apply_mask(image, mask, args.mask_crop_enlarge)
+        image, mask = apply_mask(
+            image, mask, args.mask_crop_enlarge, args.min_mask_border)
         mask = nibabel.Nifti1Pair(mask, np.eye(4))
 
 
