@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: affine3d.py
-# $Date: Sun May 03 02:39:19 2015 +0800
+# $Date: Tue May 12 20:03:58 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ...utils import serial
@@ -33,7 +33,7 @@ def fmtarr(v):
     return np.ascontiguousarray(np.asarray(v).astype(np.float32))
 
 def batched_affine3d(src, inv_affine_mat, oshape=None, gpuid=0):
-    """:param inv_affine_mat: maps coord on dest to src
+    """:param inv_affine_mat: maps coord on dest to src, shape(n, 3, 4)
     :param oshape: tuple of output shape"""
 
     src = fmtarr(src)

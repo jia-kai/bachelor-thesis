@@ -1,12 +1,13 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: crop_patch.py
-# $Date: Sun May 03 19:52:20 2015 +0800
+# $Date: Tue May 12 20:22:38 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial, ProgressReporter
 from nasmia.utils.patch_cropper import CropPatchHelper
-from nasmia.discriminative import TrainingData
+from nasmia.io import TrainingData
+from nasmia.math.ISA.config import LAYER1_PATCH_SIZE
 
 import numpy as np
 
@@ -28,11 +29,10 @@ def crop(args):
     with open(args.imglist) as fin:
         flist = fin.readlines()
 
-    output = np.empty(
-        (len(flist) * args.patch_per_img, osize, osize, osize),
-        dtype='float32')
-    logger.info('data size: {:.3f} GiB'.format(
-        output.size * 4 / 1024.0**3))
+    data_shape = (len(flist) * args.patch_per_img, osize, osize, osize)
+    logger.info('data: shape={} size={:.3f}GiB'.format(
+        data_shape, np.prod(data_shape) * 4 / 1024.0**3))
+    output = np.empty(data_shape, dtype='float32')
 
     prog = ProgressReporter('crop', output.shape[0])
 
@@ -59,7 +59,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='randomly crop patches from nrrd image files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--patch_size', type=int, default=14)
+    parser.add_argument('--patch_size', type=int, default=LAYER1_PATCH_SIZE)
     parser.add_argument('--bg_scale', type=float, default=1.5)
     parser.add_argument('--patch_per_img', type=int, default=250)
     parser.add_argument('--seed', type=int, default=20150501,
