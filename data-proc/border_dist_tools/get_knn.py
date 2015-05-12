@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: get_knn.py
-# $Date: Mon May 11 22:07:24 2015 +0800
+# $Date: Tue May 12 16:35:00 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op import sharedX
@@ -103,7 +103,8 @@ class GetKNN(object):
 
         serial.dump(
             KNNResult(idx=knn_idx, dist=knn_dist,
-                      img_shape=test_pack.img.shape),
+                      img_shape=test_pack.img.shape,
+                      args=args),
             args.output, use_pickle=True)
 
     @classmethod
@@ -228,7 +229,7 @@ def main():
     # knn options
     parser.add_argument('--measure', choices=['l2'], default='l2',
                         help='distance measure to use')
-    parser.add_argument('--nr_knn', type=int, default=2,
+    parser.add_argument('--nr_knn', type=int, default=1,
                         help='number of KNNs to return')
     # misc
     parser.add_argument('--run_tests', action='store_true',

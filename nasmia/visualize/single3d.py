@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: single3d.py
-# $Date: Sat May 02 22:06:35 2015 +0800
+# $Date: Tue May 12 16:43:01 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import functools
@@ -22,6 +22,9 @@ class Single3DDataViewer(object):
         """:param onclick: callback, (x, y, z)
         :param onaxischange: callback, (axis, pos)"""
         assert data.ndim in (3, 4)
+        if data.ndim == 4:
+            assert data.shape[0] in (1, 3)
+            data = np.transpose(data, (1, 2, 3, 0))
         self._axis_pos = [0] * 3
         dmin = data.min()
         dmax = data.max()

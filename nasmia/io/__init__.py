@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: __init__.py
-# $Date: Mon May 11 21:56:13 2015 +0800
+# $Date: Tue May 12 16:34:41 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 class ModelEvalOutput(object):
@@ -42,10 +42,14 @@ class KNNResult(object):
     img_shape = None
     """original test image shape"""
 
-    def __init__(self, idx, dist, img_shape):
+    args = None
+    """original command line args passed to get_knn"""
+
+    def __init__(self, idx, dist, img_shape, args):
         self.idx = idx
         self.dist = dist
         self.img_shape = img_shape
+        self.args = args
 
 
 class TrainingData(object):

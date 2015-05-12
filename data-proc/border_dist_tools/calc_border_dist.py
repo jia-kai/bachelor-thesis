@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: calc_border_dist.py
-# $Date: Mon May 11 19:48:28 2015 +0800
+# $Date: Tue May 12 16:09:20 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import pyximport
@@ -9,7 +9,7 @@ pyximport.install()
 
 from calc_border_dist_impl import calc_border_dist
 
-from nasmia.utils import serial
+from nasmia.utils import serial, timed_operation
 
 import numpy as np
 
@@ -24,8 +24,9 @@ def main():
     args = parser.parse_args()
 
     inp = serial.load(args.input)
-    mask = (inp >= (inp.max() / 2)).astype(np.int)
-    output = calc_border_dist(mask)
+    mask = (inp >= (inp.max() / 2)).astype(np.int32)
+    with timed_operation('calc_border_dist: {}'.format(mask.shape)):
+        output = calc_border_dist(mask)
     serial.dump(output, args.output)
 
 if __name__ == '__main__':
