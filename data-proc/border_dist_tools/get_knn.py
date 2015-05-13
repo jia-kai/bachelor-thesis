@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: get_knn.py
-# $Date: Tue May 12 16:35:00 2015 +0800
+# $Date: Wed May 13 08:54:43 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op import sharedX
@@ -66,6 +66,26 @@ class L2Dist(DistMeasure):
         if self._do_sqrt:
             dist = np.sqrt(dist)
         return dist
+
+
+class CosDist(DistMeasure):
+    def _do_calc(self, v0, v1):
+        v0_shp = v0.shape
+        v1_shp = v1.shape
+        v0 = sharedX(v0)
+        v1 = sharedX(v1)
+        norm0 = T.sqrt(T.square(v0).sum(axis=1, keepdims=True))
+        norm1 = T.sqrt(T.square(v1).sum(axis=0, keepdims=True))
+        dist = 1 - T.dot(v0 / norm0, v1 / norm1)
+        func = theano.function([], dist)
+        with timed_operation('CosDist: {}x{}'.format(
+                v0_shp, v1_shp)):
+            return func()
+
+    def dist_brouteforce(self, v0, v1):
+        v0 = v0 / np.sqrt(np.square(v0).sum())
+        v1 = v1 / np.sqrt(np.square(v1).sum())
+        return 1 - np.dot(v0, v1)
 
 
 class GetKNN(object):
@@ -158,7 +178,8 @@ class GetKNN(object):
         m = self._args.measure
         if m == 'l2':
             return L2Dist()
-
+        if m == 'cos':
+            return CosDist()
         raise RuntimeError('unknown dist measure: {}'.format(m))
 
     def _load_ref_ftr(self):
@@ -227,7 +248,7 @@ def main():
     parser.add_argument('--test_downsample', type=int, default=3,
                         help='downsample ratio of test image')
     # knn options
-    parser.add_argument('--measure', choices=['l2'], default='l2',
+    parser.add_argument('--measure', choices=['l2', 'cos'], default='l2',
                         help='distance measure to use')
     parser.add_argument('--nr_knn', type=int, default=1,
                         help='number of KNNs to return')
@@ -239,6 +260,7 @@ def main():
     args = parser.parse_args()
     if args.run_tests:
         run_tests()
+        return
 
     GetKNN(args)
 

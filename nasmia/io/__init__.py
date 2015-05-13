@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: __init__.py
-# $Date: Tue May 12 16:34:41 2015 +0800
+# $Date: Wed May 13 08:45:53 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 class ModelEvalOutput(object):
@@ -11,6 +11,7 @@ class ModelEvalOutput(object):
     """model feature output"""
 
     def __init__(self, img, ftr):
+        assert img.ndim == 3 and ftr.ndim == 4
         self.img = img
         self.ftr = ftr
 
