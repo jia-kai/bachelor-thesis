@@ -1,12 +1,12 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: get_knn.py
-# $Date: Wed May 13 08:54:43 2015 +0800
+# $Date: Sun May 17 14:16:07 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op import sharedX
 from nasmia.io import ModelEvalOutput, KNNResult
-from nasmia.utils import serial, timed_operation
+from nasmia.utils import serial, timed_operation, ProgressReporter
 
 import numpy as np
 import theano.tensor as T
@@ -30,7 +30,9 @@ class DistMeasure(object):
         """:param v0, v1: feature maps, shape: (nr_sample, feature_dim)
         :return: pairwise dist of shape (nr_sample0, nr_sample1)"""
         assert v0.ndim == 2 and v1.ndim == 2 and v0.shape[1] == v1.shape[1]
-        rst = self._do_calc(v0, v1.T)
+        v0inp = v0.astype('float32')
+        v1inp = v1.T.astype('float32')
+        rst = self._do_calc(v0inp, v1inp)
         assert rst.ndim == 2 and rst.shape == (v0.shape[0], v1.shape[0]), \
             (rst.shape, v0.shape, v1.shape, self.__class__)
         return rst
@@ -41,25 +43,23 @@ class DistMeasure(object):
 
 
 class L2Dist(DistMeasure):
+    _func = None
     _do_sqrt = False
     def __init__(self, do_sqrt=False):
         self._do_sqrt = do_sqrt
 
     def _do_calc(self, v0, v1):
-        v0_shp = v0.shape
-        v1_shp = v1.shape
-        v0 = sharedX(v0)
-        v1 = sharedX(v1)
-        sqrsum0 = T.square(v0).sum(axis=1, keepdims=True)
-        sqrsum1 = T.square(v1).sum(axis=0, keepdims=True)
-        dot = T.dot(v0, v1)
-        dist = sqrsum0 + sqrsum1 - dot * 2
-        if self._do_sqrt:
-            dist = T.sqrt(dist)
-        func = theano.function([], dist)
-        with timed_operation('L2Dist: {}x{}'.format(
-                v0_shp, v1_shp)):
-            return func()
+        if self._func is None:
+            xv0 = T.matrix('v0')
+            xv1 = T.matrix('v1')
+            sqrsum0 = T.square(xv0).sum(axis=1, keepdims=True)
+            sqrsum1 = T.square(xv1).sum(axis=0, keepdims=True)
+            dot = T.dot(xv0, xv1)
+            dist = sqrsum0 + sqrsum1 - dot * 2
+            if self._do_sqrt:
+                dist = T.sqrt(dist)
+            self._func = theano.function([xv0, xv1], dist)
+        return self._func(v0, v1)
 
     def dist_brouteforce(self, v0, v1):
         dist = np.square(v0 - v1).sum()
@@ -69,18 +69,19 @@ class L2Dist(DistMeasure):
 
 
 class CosDist(DistMeasure):
+    _v0 = None
+    _v1 = None
+    _func = None
+
     def _do_calc(self, v0, v1):
-        v0_shp = v0.shape
-        v1_shp = v1.shape
-        v0 = sharedX(v0)
-        v1 = sharedX(v1)
-        norm0 = T.sqrt(T.square(v0).sum(axis=1, keepdims=True))
-        norm1 = T.sqrt(T.square(v1).sum(axis=0, keepdims=True))
-        dist = 1 - T.dot(v0 / norm0, v1 / norm1)
-        func = theano.function([], dist)
-        with timed_operation('CosDist: {}x{}'.format(
-                v0_shp, v1_shp)):
-            return func()
+        if self._func is None:
+            xv0 = T.matrix('v0')
+            xv1 = T.matrix('v1')
+            norm0 = T.sqrt(T.square(xv0).sum(axis=1, keepdims=True))
+            norm1 = T.sqrt(T.square(xv1).sum(axis=0, keepdims=True))
+            dist = 1 - T.dot(xv0 / norm0, xv1 / norm1)
+            self._func = theano.function([xv0, xv1], dist)
+        return self._func(v0, v1)
 
     def dist_brouteforce(self, v0, v1):
         v0 = v0 / np.sqrt(np.square(v0).sum())
@@ -106,20 +107,30 @@ class GetKNN(object):
         ftr_dim = ref_ftr.shape[0]
         assert ftr_dim == test_ftr.shape[0]
 
-        dist = self._get_dist_measure()(
-            ref_ftr.reshape(ftr_dim, -1).T,
-            test_ftr.reshape(ftr_dim, -1).T)
+        test_ftr_shape = test_ftr.shape[1:]
+        ref_ftr = ref_ftr.reshape(ftr_dim, -1).T
+        test_ftr = test_ftr.reshape(ftr_dim, -1).T
 
-        knn_idx, knn_dist = self._get_all_knn_index(dist)
-        knn_idx = [self._cvt_index_to_coord(i, test_ftr.shape[1:])
-                   for i in knn_idx]
-        knn_idx = np.array(knn_idx)
-        knn_dist = np.array(knn_dist)
+
+        knn_idx = np.empty((ref_ftr.shape[0], args.nr_knn, 3), dtype='int32')
+        knn_dist = np.empty((ref_ftr.shape[0], args.nr_knn), dtype='float32')
+        dist_measure = self._get_dist_measure()
+
+        idx_start = range(0, ref_ftr.shape[0], args.batch_size)
+        prog = ProgressReporter('eval', len(idx_start))
+
+        for i in idx_start:
+            dist = dist_measure(ref_ftr[i:i+args.batch_size], test_ftr)
+            cur_knn_idx, cur_knn_dist = self._get_all_knn_index(
+                dist, test_ftr_shape)
+            knn_idx[i:i+args.batch_size] = cur_knn_idx
+            knn_dist[i:i+args.batch_size] = cur_knn_dist
+
+            prog.trigger()
+        prog.finish()
 
         knn_idx *= args.test_downsample
         knn_idx -= test_pack.img2ftr_offset
-        knn_idx = knn_idx.reshape(ref_ftr.shape[1], args.nr_knn, 3)
-        knn_dist = knn_dist.reshape(ref_ftr.shape[1], args.nr_knn)
 
         serial.dump(
             KNNResult(idx=knn_idx, dist=knn_dist,
@@ -129,17 +140,27 @@ class GetKNN(object):
 
     @classmethod
     def _cvt_index_to_coord(cls, idx, shape):
+        idx0 = idx
         rst = []
         for i in shape[::-1]:
             rst.append(idx % i)
             idx /= i
-        assert idx == 0
+        assert idx == 0, 'index out of image: idx={} shape={}'.format(
+            idx0, shape)
         return rst[::-1]
 
-    def _get_all_knn_index(self, dist):
-        with timed_operation('get_knn_indx_cpu: nr={}'.format(
-                self._args.nr_knn)):
-            return self._get_all_knn_index_cpu(dist)
+    def _get_all_knn_index(self, dist, ftrimg_shape):
+        nr_pt = dist.shape[0]
+        idx, dist = self._get_all_knn_index_cpu(dist)
+
+        idx = [self._cvt_index_to_coord(i, ftrimg_shape) for i in idx]
+        idx = np.array(idx).reshape(self._args.nr_knn, nr_pt, 3)
+        idx = np.transpose(idx, (1, 0, 2))
+
+        dist = np.array(dist).reshape(self._args.nr_knn, nr_pt)
+        dist = dist.T
+
+        return idx, dist
 
     def _get_all_knn_index_cpu(self, dist):
         dist = dist.copy()
@@ -194,9 +215,23 @@ class GetKNN(object):
 
         logger.info('number of reference points selected by dist: {}'.format(
             ptlist.shape[0]))
-        if ptlist.shape[0] > args.nr_sample:
+
+        # only select those points in feature boundary
+        in_bound_ = lambda v, d: ((v >= -ref.img2ftr_offset) *
+                                 (v < ref.img.shape[d] + ref.img2ftr_offset))
+        in_bound = lambda d: in_bound_(ptlist[:, d], d)
+        ptlist_in_bound = in_bound(0) * in_bound(1) * in_bound(2)
+        if ptlist_in_bound.sum() < ptlist.shape[0]:
+            idx, = np.nonzero(ptlist_in_bound)
+            logger.warn('only {} points in feature boundary; '
+                        '{} discarded'.format(
+                            len(idx), ptlist.shape[0] - len(idx)))
+            ptlist = ptlist[idx]
+
+        if args.nr_sample and ptlist.shape[0] > args.nr_sample:
             self._rng.shuffle(ptlist)
             ptlist = ptlist[:args.nr_sample]
+            logger.info('sample {} feature points'.format(args.nr_sample))
 
         logger.info('conv shape: {}'.format(ref.conv_shape))
 
@@ -242,7 +277,7 @@ def main():
     # ref options
     parser.add_argument('--ref_dist', type=int, default=2,
                         help='distance for points selected on reference image')
-    parser.add_argument('--nr_sample', type=int, default=1000,
+    parser.add_argument('--nr_sample', type=int,
                         help='number of points to sample on reference image')
     # test options
     parser.add_argument('--test_downsample', type=int, default=3,
@@ -257,6 +292,8 @@ def main():
                         help='run dist measure tests')
     parser.add_argument('--seed', type=int, default=20150511,
                         help='RNG seed')
+    parser.add_argument('--batch_size', type=int, default=5000,
+                        help='size of batch for a single run')
     args = parser.parse_args()
     if args.run_tests:
         run_tests()
