@@ -1,0 +1,3 @@
+[submodule "doc/paper/thuthesis"]
+	path = doc/paper/thuthesis
+	url = https://github.com/xueruini/thuthesis.git
