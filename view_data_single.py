@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: view_data_single.py
-# $Date: Mon May 11 20:08:44 2015 +0800
+# $Date: Sat May 23 00:08:27 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -21,6 +21,7 @@ def main():
     parser.add_argument('-c', '--channel', type=int,
                         help='select data channel')
     parser.add_argument('--vselect', type=float, help='select value to disp')
+    parser.add_argument('--mask', help='draw mask overlay')
     parser.add_argument('img_fpath')
     args = parser.parse_args()
 
@@ -33,6 +34,16 @@ def main():
     if args.vselect is not None:
         data = (data == args.vselect)
         logger.info('nr points selected: {}'.format(data.sum()))
+    if args.mask:
+        mask = serial.load(args.mask)
+        assert mask.shape == data.shape
+        data = data.astype('float32')
+        mask = (mask >= mask.max() / 2.0)
+        dmin = data.min()
+        data -= dmin
+        data *= 0.5
+        data[mask] *= 2
+        data += dmin
     view_3d_data_single(data)
 
 if __name__ == '__main__':
