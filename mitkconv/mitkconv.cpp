@@ -1,6 +1,6 @@
 /*
  * $File: mitkconv.cpp
- * $Date: Sat Mar 07 10:18:46 2015 +0800
+ * $Date: Fri May 22 23:54:28 2015 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
  */
 
@@ -43,7 +43,7 @@ static void work_on_image(FILE *fout, FILE *fout_data, mitk::Image *img) {
     if (ioPixelType != itk::ImageIOBase::SCALAR)
         throw std::runtime_error("bad ioPixelType");
 
-    printf("type=%d\n", pixelType.GetComponentType());
+    printf("component_type=%d\n", pixelType.GetComponentType());
     const char *pixel_t_text;
     size_t pixel_t_size;
     switch (pixelType.GetComponentType()) {
@@ -137,8 +137,8 @@ int main(int argc, char* argv[]) {
             printf("name=%s is_image=%d is_surface=%d\n",
                     name.c_str(), is_img, is_surface);
             if (!(is_img ^ is_surface)) {
-                printf("WTF!\n");
-                return -1;
+                printf("bad node type!\n");
+                continue;
             }
             if (is_img) {
                 fprintf(fout_meta, "image: %s\n", name.c_str());
