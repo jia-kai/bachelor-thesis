@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: __init__.py
-# $Date: Wed May 13 08:45:53 2015 +0800
+# $Date: Sun May 31 19:15:55 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 class ModelEvalOutput(object):
@@ -33,12 +33,18 @@ class ModelEvalOutput(object):
         return -self.conv_shape / 2
 
 
-class KNNResult(object):
+class PointMatchResult(object):
+    ref_idx = None
+    """selected points on reference image;
+    shape: (nr_point, 3)"""
+
     idx = None
-    """shape: (nr_point, nr_knn, 3)"""
+    """matched points on test image;
+    shape: (nr_point, 3)"""
 
     dist = None
-    """shape: (nr_point, nr_knn)"""
+    """matching dist in test image;
+    shape: (nr_point, )"""
 
     img_shape = None
     """original test image shape"""
@@ -46,7 +52,8 @@ class KNNResult(object):
     args = None
     """original command line args passed to get_knn"""
 
-    def __init__(self, idx, dist, img_shape, args):
+    def __init__(self, ref_idx, idx, dist, img_shape, args):
+        self.ref_idx = ref_idx
         self.idx = idx
         self.dist = dist
         self.img_shape = img_shape

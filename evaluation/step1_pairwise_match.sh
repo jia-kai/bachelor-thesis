@@ -1,21 +1,21 @@
 #!/bin/bash -e
-# $File: step1_pairwise_knn.sh
-# $Date: Sun May 17 15:15:28 2015 +0800
+# $File: step1_pairwise_match.sh
+# $Date: Sun May 31 19:26:12 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 TRAIN_LIST=../../sliver07/list.txt
 TEST_LIST=../../sliver07/list-test.txt
 BORDER_DIST_DIR=../../sliver07/border-dist
-OUTPUT_DIR=data/pairwise-knn
+OUTPUT_DIR=data/pairwise-match
 FEATURE_DIR=data/feature
 
 model_name=$1
 measure=$2
-shift 2
+shift 2 || true
 
 if [ -z "$measure" ]
 then
-    echo "usage: $1 <model name> <dist measure> [-c]"
+    echo "usage: $0 <model name> <dist measure> [-c]"
     exit -1
 fi
 
@@ -63,10 +63,10 @@ do
             continue
         fi
 
-        ../data-proc/border_dist_tools/get_knn.py \
+        ./get_match.py \
             -r $ftr_train -b $bd_train -t $ftr_test \
             -o $output --measure $measure \
-            --batch_size 3000
+            --batch_size 4000 --nr_sample 3000
 
     done
 done

@@ -1,20 +1,21 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-# $File: get_knn.py
-# $Date: Sun May 17 14:16:07 2015 +0800
+# $File: get_match.py
+# $Date: Sun May 31 19:19:32 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op import sharedX
-from nasmia.io import ModelEvalOutput, KNNResult
+from nasmia.io import ModelEvalOutput, PointMatchResult
 from nasmia.utils import serial, timed_operation, ProgressReporter
 
 import numpy as np
 import theano.tensor as T
 import theano
 
-from abc import abstractmethod, ABCMeta
 import logging
 import argparse
+import itertools
+from abc import abstractmethod, ABCMeta
 logger = logging.getLogger(__name__)
 
 class DistMeasure(object):
@@ -97,7 +98,7 @@ class GetKNN(object):
         self._args = args
         self._rng = np.random.RandomState(args.seed)
 
-        ref_ftr = self._load_ref_ftr()
+        ref_ftr, ref_ftr_idx = self._load_ref_ftr()
 
         test_pack = serial.load(args.test, ModelEvalOutput)
         test_ftr = test_pack.ftr[
@@ -111,32 +112,49 @@ class GetKNN(object):
         ref_ftr = ref_ftr.reshape(ftr_dim, -1).T
         test_ftr = test_ftr.reshape(ftr_dim, -1).T
 
+        raw_idx, match_dist = self._get_match_idx_and_dist(ref_ftr, test_ftr)
+        match_dist = np.asarray(match_dist, dtype=np.float32)
+        match_idx = [self._cvt_index_to_coord(i, test_ftr_shape)
+                     for i in raw_idx]
+        match_idx = np.asarray(match_idx, dtype=np.int32).reshape(
+            ref_ftr.shape[0], 3)
 
-        knn_idx = np.empty((ref_ftr.shape[0], args.nr_knn, 3), dtype='int32')
-        knn_dist = np.empty((ref_ftr.shape[0], args.nr_knn), dtype='float32')
+        match_idx *= args.test_downsample
+        match_idx -= test_pack.img2ftr_offset
+
+        serial.dump(
+            PointMatchResult(
+                ref_idx=ref_ftr_idx,
+                idx=match_idx, dist=match_dist, img_shape=test_pack.img.shape,
+                args=args),
+            args.output, use_pickle=True)
+
+    def _get_match_idx_and_dist(self, ref_ftr, test_ftr):
+        grp_dist = []
+        grp_idx = []
+
         dist_measure = self._get_dist_measure()
+        arng = np.arange(ref_ftr.shape[0])
 
-        idx_start = range(0, ref_ftr.shape[0], args.batch_size)
-        prog = ProgressReporter('eval', len(idx_start))
-
-        for i in idx_start:
-            dist = dist_measure(ref_ftr[i:i+args.batch_size], test_ftr)
-            cur_knn_idx, cur_knn_dist = self._get_all_knn_index(
-                dist, test_ftr_shape)
-            knn_idx[i:i+args.batch_size] = cur_knn_idx
-            knn_dist[i:i+args.batch_size] = cur_knn_dist
-
+        grp_idx_start = range(0, test_ftr.shape[0], self._args.batch_size)
+        prog = ProgressReporter('eval', len(grp_idx_start))
+        for i in grp_idx_start:
+            pairwise_dist = dist_measure(
+                ref_ftr, test_ftr[i:i+self._args.batch_size])
+            cur_idx = np.argmin(pairwise_dist, axis=1)
+            cur_dist = pairwise_dist[arng, cur_idx]
+            cur_idx += i
+            grp_idx.append(np.expand_dims(cur_idx, axis=1))
+            grp_dist.append(np.expand_dims(cur_dist, axis=1))
             prog.trigger()
         prog.finish()
 
-        knn_idx *= args.test_downsample
-        knn_idx -= test_pack.img2ftr_offset
+        grp_dist = np.concatenate(grp_dist, axis=1)
+        grp_idx = np.concatenate(grp_idx, axis=1)
 
-        serial.dump(
-            KNNResult(idx=knn_idx, dist=knn_dist,
-                      img_shape=test_pack.img.shape,
-                      args=args),
-            args.output, use_pickle=True)
+        sel_idx = np.argmin(grp_dist, axis=1)
+
+        return grp_idx[arng, sel_idx], grp_dist[arng, sel_idx]
 
     @classmethod
     def _cvt_index_to_coord(cls, idx, shape):
@@ -148,52 +166,6 @@ class GetKNN(object):
         assert idx == 0, 'index out of image: idx={} shape={}'.format(
             idx0, shape)
         return rst[::-1]
-
-    def _get_all_knn_index(self, dist, ftrimg_shape):
-        nr_pt = dist.shape[0]
-        idx, dist = self._get_all_knn_index_cpu(dist)
-
-        idx = [self._cvt_index_to_coord(i, ftrimg_shape) for i in idx]
-        idx = np.array(idx).reshape(self._args.nr_knn, nr_pt, 3)
-        idx = np.transpose(idx, (1, 0, 2))
-
-        dist = np.array(dist).reshape(self._args.nr_knn, nr_pt)
-        dist = dist.T
-
-        return idx, dist
-
-    def _get_all_knn_index_cpu(self, dist):
-        dist = dist.copy()
-        rst_idx = []
-        rst_dist = []
-
-        shp0 = range(dist.shape[0])
-        for i in range(self._args.nr_knn):
-            idx = np.argmin(dist, axis=1)
-            rst_idx.extend(idx)
-            rst_dist.extend(dist[shp0, idx])
-            dist[shp0, idx] = np.inf
-        return rst_idx, rst_dist
-
-    def _get_all_knn_index_gpu(self, dist):
-        shp0 = T.arange(dist.shape[0])
-        dist = sharedX(dist)
-
-        rst_idx = []
-        rst_dist = []
-
-        for i in range(self._args.nr_knn):
-            idx = T.argmin(dist, axis=1)
-            dsub = dist[shp0, idx]
-            rst_idx.append(idx)
-            rst_dist.append(dsub)
-            dist = T.set_subtensor(dsub, np.inf)
-
-        rst_idx = T.concatenate(rst_idx, axis=0)
-        rst_dist = T.concatenate(rst_dist, axis=0)
-        func = theano.function([], [rst_idx, rst_dist])
-        with timed_operation('get knns'):
-            return func()
 
     def _get_dist_measure(self):
         m = self._args.measure
@@ -209,12 +181,15 @@ class GetKNN(object):
         ref = serial.load(args.ref, ModelEvalOutput)
         border_dist = serial.load(args.border, np.ndarray)
 
-        assert border_dist.ndim == 3
+        assert border_dist.ndim == 3 and ref.img.shape == border_dist.shape
 
-        ptlist = np.transpose(np.nonzero(border_dist == args.ref_dist))
+        mask = border_dist == args.ref_dist
+        orig_nr_pt = mask.sum()
+        mask = self._downsample_sparse_mask(mask, args.ref_downsample)
+        ptlist = np.transpose(np.nonzero(mask))
 
-        logger.info('number of reference points selected by dist: {}'.format(
-            ptlist.shape[0]))
+        logger.info('number of reference points selected by dist: {}/{}'.format(
+            ptlist.shape[0], orig_nr_pt))
 
         # only select those points in feature boundary
         in_bound_ = lambda v, d: ((v >= -ref.img2ftr_offset) *
@@ -229,17 +204,45 @@ class GetKNN(object):
             ptlist = ptlist[idx]
 
         if args.nr_sample and ptlist.shape[0] > args.nr_sample:
+            logger.info('random sample {} '
+                        'feature points out of {}'.format(
+                            args.nr_sample, len(ptlist)))
             self._rng.shuffle(ptlist)
             ptlist = ptlist[:args.nr_sample]
-            logger.info('sample {} feature points'.format(args.nr_sample))
 
         logger.info('conv shape: {}'.format(ref.conv_shape))
 
-        ptlist += ref.img2ftr_offset
+        ptlist_orig = ptlist
+        ptlist = ptlist_orig + ref.img2ftr_offset
         assert ptlist.min() >= 0
         idx0, idx1, idx2 = ptlist.T
-        return ref.ftr[:, idx0, idx1, idx2]
+        return ref.ftr[:, idx0, idx1, idx2], ptlist_orig
 
+    def _downsample_sparse_mask(self, mask, factor):
+        if factor <= 1:
+            return mask
+
+        logger.info('downsample mask factor: {}'.format(factor))
+        assert mask.dtype == np.bool
+        available = np.zeros_like(mask, dtype=np.int32)
+
+        for i, j, k in itertools.product(range(factor), repeat=3):
+            sub = mask[i::factor, j::factor, k::factor]
+            avail_sub = available[:sub.shape[0], :sub.shape[1], :sub.shape[2]]
+            avail_sub += sub
+
+        available = ((available > 0) +
+                     available * self._rng.uniform(size=available.shape))
+        available = available.astype(np.int)
+
+        for i, j, k in itertools.product(range(factor), repeat=3):
+            sub = mask[i::factor, j::factor, k::factor]
+            avail_sub = available[:sub.shape[0], :sub.shape[1], :sub.shape[2]]
+            avail_sub_next = avail_sub - sub
+            sub *= avail_sub == 1
+            avail_sub[:] = avail_sub_next
+        assert available.max() == 0
+        return mask
 
 def run_tests():
     nr0 = 100
@@ -263,7 +266,8 @@ def run_tests():
 
 def main():
     parser = argparse.ArgumentParser(
-        description='calc KNN of boundary points and save to file',
+        description='find points on test image that match with boundary points'
+        'on ref image',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # io
     parser.add_argument('-r', '--ref', required=True,
@@ -279,14 +283,13 @@ def main():
                         help='distance for points selected on reference image')
     parser.add_argument('--nr_sample', type=int,
                         help='number of points to sample on reference image')
-    # test options
-    parser.add_argument('--test_downsample', type=int, default=3,
+    parser.add_argument('--ref_downsample', type=int, default=3,
+                        help='downsample ratio of reference image')
+    parser.add_argument('--test_downsample', type=int, default=1,
                         help='downsample ratio of test image')
-    # knn options
-    parser.add_argument('--measure', choices=['l2', 'cos'], default='l2',
+    # match options
+    parser.add_argument('--measure', choices=['l2', 'cos'], default='cos',
                         help='distance measure to use')
-    parser.add_argument('--nr_knn', type=int, default=1,
-                        help='number of KNNs to return')
     # misc
     parser.add_argument('--run_tests', action='store_true',
                         help='run dist measure tests')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: get_roc.py
-# $Date: Sun May 17 16:42:41 2015 +0800
+# $Date: Sun May 31 19:04:41 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import pyximport
@@ -23,20 +23,21 @@ def main():
                             os.path.dirname(__file__),
                             '../../sliver07/border-dist')),
                         help='directory that store the border dist files')
+    parser.add_argument('--dedup_grid_size', type=int, default=2,
+                        help='matched points that are placed inside the same'
+                        ' grid would be considered as duplications')
     parser.add_argument('--dist_min', type=int, default=-1,
                         help='minimum dist to be considered as hit')
     parser.add_argument('--dist_max', type=int, default=1,
                         help='maximum dist to be considered as hit')
-    parser.add_argument('--select_knn', type=int, default=1,
-                        help='select the first K nn')
     parser.add_argument('--nr_point', type=int, default=10000,
                         help='number of points on ROC curve')
     parser.add_argument('--plot', action='store_true',
                         help='plot ROC curve')
     parser.add_argument('-o', '--output',
                         help='write text ROC curve to output')
-    parser.add_argument('knn_result', nargs='+',
-                        help='KNN results of training images '
+    parser.add_argument('match_result', nargs='+',
+                        help='point match results of training images '
                         'on this test image')
     args = parser.parse_args()
 
