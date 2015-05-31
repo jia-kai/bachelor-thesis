@@ -1,13 +1,17 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: ftr_pca.py
-# $Date: Sun May 03 16:47:01 2015 +0800
+# $Date: Mon May 25 22:27:58 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
-
-import argparse
 
 from nasmia.math.ISA import ISA, ISAParam
 from nasmia.utils import serial
+
+import numpy as np
+
+import logging
+import argparse
+logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -23,7 +27,10 @@ def main():
                         help='gpus to use')
     args = parser.parse_args()
 
-    ftr = serial.load(args.input)
+    ftr = serial.load(args.input, np.ndarray)
+
+    logger.info('input feature shape: {}'.format(ftr.shape))
+
     param = ISAParam(in_dim=ftr.shape[1], subspace_size=1, hid_dim=args.dim)
     isa = ISA(param, ftr.T, args.nr_worker, map(int, args.gpus.split(',')))
     mdl = isa.get_model_pcaonly()

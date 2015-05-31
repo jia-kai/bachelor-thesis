@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: view_knn.py
-# $Date: Sun May 17 16:18:48 2015 +0800
+# $Date: Mon May 18 14:04:41 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.visualize import view_3d_data_single
@@ -21,9 +21,12 @@ def main():
     parser.add_argument('input', nargs='+')
     parser.add_argument('--radius', type=int, default=2)
     parser.add_argument('--mask', help='plot groundtruth mask')
+    parser.add_argument('--dist_thresh', type=float, default=float('inf'),
+                        help='feature dist threshold')
     args = parser.parse_args()
 
     img = None
+    nr_pt_view = 0
     for i in args.input:
         logger.info('load {}'.format(i))
         knn = serial.load(i, KNNResult)
@@ -46,10 +49,13 @@ def main():
         r = args.radius
         for ptnum in range(knn.dist.shape[0]):
             for k in range(knn.dist.shape[1]):
+                if knn.dist[ptnum, k] > args.dist_thresh:
+                    continue
+                nr_pt_view += 1
+                val = dist[ptnum, k]
                 x, y, z = knn.idx[ptnum, k]
                 x0, y0, z0 = [max(i - r, 0) for i in (x, y, z)]
                 x1, y1, z1 = [i + r for i in (x, y, z)]
-                val = dist[ptnum, k]
                 if args.mask:
                     img[0, x0:x1, y0:y1, z0:z1] = 0
                     img[1, x0:x1, y0:y1, z0:z1] = val
@@ -57,6 +63,7 @@ def main():
                 else:
                     img[x0:x1, y0:y1, z0:z1] = val
 
+    logger.info('number of points: {}'.format(nr_pt_view))
     view_3d_data_single(img)
 
 if __name__ == '__main__':
