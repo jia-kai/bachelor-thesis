@@ -1,26 +1,27 @@
 % $File: CNN.tex
-% $Date: Sat May 23 11:16:38 2015 +0800
+% $Date: Sun May 31 21:18:00 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于深度卷积神经网络的特征提取}
-本章主要介绍基于深度卷积神经网络的特征提取方法。基于不同的目标函数，
-本章提出两个模型，但其基本思想都是针对\secref{ISA}提到的ISA方法的局限性，
-把非监督学习转换为监督学习，以便能得到对一些3D图像变换保持鲁棒，
+本章主要介绍基于深度卷积神经网络的特征提取方法。基于不同的损失函数，
+本章提出两个模型，
+但其基本思想都是针对\secref{ISA:discuss}提到的ISA方法的局限性，
+通过人工构造的损失函数，引导网络学习出对仿射变换和Gamma校正有鲁棒性、
 同时具有较强区分性的特征。
 
 \section{网络结构}
 
-\section{目标函数}
+\section{损失函数}
 \subsection{分类输出：Softmax与交叉熵损失函数}
-\subsection{直接特征输出：度量学习}
+\subsection{特征输出：度量学习}
 
 \section{数据增广}
 简要形式化描述希望特征对变换$F(A, \gamma)=(affine(A), gamma(\gamma))$
 满足的不变性
 
-\subsection{Gamma变换}
+\subsection{Gamma校正}
 
-\subsection{三维仿射变换的表示、分解与采样}
+\subsection{三维仿射变换}
 
 \section{训练方法}
 

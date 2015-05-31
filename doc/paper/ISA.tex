@@ -1,19 +1,290 @@
 % $File: ISA.tex
-% $Date: Sat May 23 11:13:21 2015 +0800
+% $Date: Sun May 31 21:15:34 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
-\chapter{基于层叠卷积ISA的特征提取\label{sec:ISA}}
+\chapter{基于层叠卷积ISA的特征提取}
 本章主要介绍独立子空间分析(Independent Subspace Analysis, ISA)方法的基本原理，
-及将其多次层叠后构成深度网络进行特征提取的方法\cite{wu2013unsupervised}，
-并讨论该方法的一些局限性。
+及将其多次层叠后构成深度网络进行特征提取的方法，并对该方法进行简单的讨论。
 
 \section{ISA的基本原理}
+ISA是对独立成分分析(Independent Component Analysis, ICA)的扩展，
+是一种经典的统计学习方法。
+在本节中，先对ICA进行介绍，再将其扩展到ISA。关于ISA的更为详细的内容，
+可以参考\cite{hyvarinen2009natural}。
+
+
+\subsection{ICA的基本原理}
+% f{{{
+ICA是一种生成模型，其出发点是希望从对一个随机变量的一系列观察中，
+分析出其背后的独立成分，每个成分有自己的概率分布，从而得出该随机变量的概率分布。
+
+具体而言，对随机变量$\vec{x} = \trans{(x_1, \cdots, x_n)}$，ICA假设
+\begin{eqnarray}
+    \vec{x} = \vec{A}\vec{s}
+    \label{eqn:ica:0}
+\end{eqnarray}
+其中，$\vec{A}$是一个$n\times m$的矩阵，$\vec{s}=\trans{(s_1,\cdots,s_m)}$
+是一个$m$维随机变量，对于$i\neq j$，$s_i$和$s_j$独立。
+
+实际应用时，一般$m \le n$，先对$\vec{x}$进行主成分分析(Principal Component
+Analysis, PCA)，降维成$m$维随机变量$\vec{z}=\vec{P}(\vec{x}-\bar{\vec{x}})$，
+其中$\vec{P}$是$m \times n$的PCA矩阵；
+另外\eqnref{ica:0}中的$\vec{x}$对应替换成$\vec{z}$，即
+\begin{eqnarray}
+    \vec{z} = \vec{B}\vec{s}
+    \label{eqn:ica:1}
+\end{eqnarray}
+其中$\vec{B}$是$n\times n$矩阵，
+用于将假设的独立特征空间变换到观察到的随机向量空间。显然\eqnref{ica:1}可逆，
+记$\vec{B}^{-1}=\vec{V}$，有
+\begin{eqnarray}
+    \vec{s} = \vec{V}\vec{z}
+    \label{eqn:ica:2}
+\end{eqnarray}
+
+在\eqnref{ica:0}中，$\vec{s}$解释了$\vec{x}$的概率分布，
+可认为是一种更易处理、更能反应$\vec{x}$本质的特征；
+而\eqnref{ica:2}则给出了从$\vec{x}$提取特征$\vec{s}$的方法，
+其中$\vec{V}$就是特征检测器。
+
+下面将简述基于最大似然来求解$\vec{V}$的方法。基于独立性的假设，有
+\begin{eqnarray}
+    \prob{\vec{s}} = \prod_{i=1}^m\prob[i]{s_i}
+    \label{eqn:ica:3}
+\end{eqnarray}
+联合\eqnref{ica:2}，于是有
+\begin{eqnarray}
+    \prob{\vec{z}} &=&  \prob{\vec{V}^{-1}\vec{s}} \nonumber \\
+        &=& \abs{\det{\vec{V}}} \prob{\vec{s}} \nonumber \\
+        &=& \abs{\det{\vec{V}}}\prod_{i=1}^m\prob[i]{s_i} \nonumber \\
+        &=& \abs{\det{\vec{V}}}\prod_{i=1}^m\prob[i]{\trans{\vec{v_i}}\vec{z}}
+    \label{eqn:ica:4}
+\end{eqnarray}
+
+假设对于$\vec{z}$有$T$个独立观测结果$\vec{z_1}\cdots\vec{z_T}$，
+可定义最大似然为优化目标，于是ICA的参数$\vec{V}$估计如下：
+\begin{eqnarray}
+    \vec{V}^* &=& \argmax_{\vec{V}} L(\vec{V}) \nonumber \\
+    &=& \argmax_{\vec{V}} \prod_{t=1}^T \prob{\vec{z_t}|\vec{V}} \nonumber \\
+    &=& \argmax_{\vec{V}} \prod_{t=1}^T \left(\abs{\det{\vec{V}}}
+            \prod_{i=1}^m\prob[i]{\trans{\vec{v_i}}\vec{z_t}} \right)
+    \label{eqn:ica:5}
+\end{eqnarray}
+
+另外，由独立性，还应该要求$\vec{s}$的各分量不相关，即$\cov{\vec{s}} = \vec{I}$，
+则需要$\vec{V}$满足$\trans{\vec{V}}\vec{V}=\vec{I}$，
+于是有$\abs{\det{\vec{V}}}=1$，ICA的求解最终为如下形式：
+\begin{eqnarray}
+    \vec{V}^* &=& \argmax_{\vec{V}}
+            \prod_{t=1}^T \left(
+            \prod_{i=1}^m\prob[i]{\trans{\vec{v_i}}\vec{z_t}} \right) \nonumber
+            \\
+        \text{subject to} && \trans{\vec{V}}\vec{V}=\vec{I}
+    \label{eqn:ica:6}
+\end{eqnarray}
+
+% f}}}
+
+\subsection{扩展ICA到ISA}
+% f{{{
+从\eqnref{ica:2}得到的特征$\vec{s}$本质上是原始输入$\vec{x}$的线性变换。
+线性变换的一个不足便是无法表达不变性，即输入发生任何改变，输出也都会对应变化，
+无法对某些变换(如图像的小范围平移、旋转等)保持结果的稳定。
+
+因此对ICA进行如下改进得到ISA：将特征$\vec{s}$分为$K$组，
+第$k$组对应的分量下标集合记作$S(k)$。把每组特征看作一个子空间，
+将其能量作为该子空间的特征输出。具体而言：
+\begin{eqnarray}
+    e_k = \sqrt{\sum_{i\in S(k)} s_i^2}
+    \label{eqn:isa:0}
+\end{eqnarray}
+
+$\vec{e} = \trans{(e_1,\cdots,e_K)}$就是ISA最终的特征输出。
+
+在ISA中，对$\vec{s}$各分量的独立性不做假设，而是假设$\vec{e}$的分量间独立，
+并且仍然要求$\trans{\vec{V}}\vec{V}=\vec{I}$以得到尽量丰富的特征。
+类似\eqnref{ica:6}，基于最大似然对$\vec{V}$求解：
+\begin{eqnarray}
+    \vec{V}^* &=& \argmax_{\vec{V}}
+            \prod_{t=1}^T \left(
+            \prod_{k=1}^K\prob[k]{e_k} \right) \nonumber \\
+        &=& \argmax_{\vec{V}}
+            \prod_{t=1}^T \left(
+            \prod_{k=1}^K\prob[k]{\sqrt{
+                \sum_{i\in S(k)}\left(\trans{\vec{v_i}}\vec{z_t}\right)^2}
+            }\right) \nonumber \\
+        \text{subject to} && \trans{\vec{V}}\vec{V}=\vec{I}
+    \label{eqn:isa:1}
+\end{eqnarray}
+
+一般而言，$p_k(s)$取为拉普拉斯分布(Laplace distribution)，
+即$p_k(s) = \frac{1}{2b}\exp(-\frac{\abs{s}}{b})$，
+并在优化目标上取对数，最终ISA参数求解的形式如下：
+\begin{eqnarray}
+    L(V) &=& \sum_{t=1}^T \sum_{k=1}^K
+        \sqrt{\sum_{i\in S(k)}\left(\trans{\vec{v_i}}\vec{z_t}\right)^2}
+        \nonumber \\
+    \vec{V}^* &=& \argmin_{\vec{V}} L(V) \nonumber \\
+        \text{subject to} && \trans{\vec{V}}\vec{V}=\vec{I}
+    \label{eqn:isa:opt}
+\end{eqnarray}
+
+而使用ISA提取特征的方法如下：
+\begin{eqnarray}
+    e_k &=&  \sqrt{\sum_{i\in S(k)} s_i^2} \nonumber \\
+    \vec{s} &=& \vec{V}\vec{P}(\vec{x} - \bar{\vec{x}})
+    \label{eqn:isa:extract}
+\end{eqnarray}
+
+% f}}}
 
 \section{层叠卷积ISA}
+% f{{{
+以3D的CT扫描图像为例，要将ISA应用于图像处理，
+一般是在扫描结果的数据里随机抽取$T$个$p\times p \times p$的图像小块，
+把每个图像块平整化，看作一个$p^3$维的向量，将这些向量带入\eqnref{isa:opt}
+求解参数$\vec{V}$。
 
-\section{优化方法及其并行实现}
+处理图像数据时，ISA可以被放入卷积神经网络的框架中。
+在\eqnref{isa:extract}中，
+记$\vec{A} = \vec{V}\vec{P}$，$\vec{b}=-\vec{A}\bar{\vec{x}}$，
+则$\vec{s}=\vec{A}\vec{x} + \vec{b}$可以看作一个全连接隐层输出。
+记$\vec{A}$的维度是$m\times n$，而当$n=p^3$、
+$\vec{x}$对应于一个$p\times p \times p$的图像块时，
+$\vec{A}$可对应看作一个$m\times 1 \times p \times p \times p$的卷积核，
+而其后的子空间的能量响应则可以看作是在多通道3D图像上进行的跨通道的非线性操作，
+从而单层ISA可以看作由卷积以及非线性操作组成的卷积神经网络，
+如\figref{isa:nn}所示。
+在这种框架下，单层的ISA可以被用于任意大小的输入图像上，
+在图像上的每个点密集提取特征；在GPU的辅助下可以达到很高的速度。
 
-\section{ISA的局限性}
+\begin{figure}[h!]
+    \addplot{res/placeholder.png}
+    \caption{单层ISA对应的卷积神经网络结构}
+    \label{fig:isa:nn}
+\end{figure}
 
+但上述标准的单层ISA有两大缺点：
+\begin{enumerate}
+    \item 只有一层非线性，无法表达更高层更复杂的结构特征
+    \item 由于优化过程中需要不断将权重矩阵正规化为正交阵，
+        该过程复杂度为$\Theta(n^3)$，因此当输入图像块的维度较大时，
+        训练会非常耗时。
+\end{enumerate}
+
+为了解决这两个问题，可以将多个这样的卷积ISA层叠起来，
+从而作为一个深度特征提取器来使用。训练时可采取贪心逐层训练的方法，
+在训练底层时使用较小的图像块，随后转换为卷积形式，
+用较大的图像块作为输入并提取特征，在提取出的特征上再训练下一层ISA。
+
+% f}}}
+
+\section{训练方法及其实现}
+% f{{{
+为了优化\eqnref{isa:opt}，我们使用带投影的整批梯度下降的方法。
+先从均匀分布中随机采样得到初始权重矩阵$\vec{V_0}$；随后按如下规则迭代更新：
+\begin{eqnarray}
+    \vec{W_i} &=& \vec{V_{i-1}} - \alpha \frac{\partial L}{\partial
+        \vec{V}}(\vec{V_{i-1}}) \nonumber  \\
+        \vec{V_i} &=& \left(
+            \vec{W_i}\trans{\vec{W_i}}\right)^{-\frac{1}{2}}\vec{W_i}
+    \label{eqn:isa:train}
+\end{eqnarray}
+其中$\vec{W_i}$是沿梯度方向更新后的权重矩阵，而$\vec{V_i}$则是将$\vec{W_i}$
+正规化使其成为正交阵。$\alpha$为学习速率，需要调整到合适的值使得$L(\vec{V_i})$
+能较快下降而又不至于发生不稳定震荡。训练直到$L(\vec{V_i})$收敛才停止。
+
+在实现方面，我们使用了theano\cite{bergstra+al:2010-scipy}作为训练框架，
+用python实现训练功能。theano是一个符号计算框架，支持自动求导，
+可以透明地实现GPU和CPU计算后端切换，同时内置了矩阵乘法、
+卷积等各种常见操作的高效实现。
+
+为了加速训练，我们实现了数据并行，可同时利用同一台主机上的多个GPU一起计算。
+观察\eqnref{isa:opt}的损失函数$L(V)$，及\eqnref{isa:train}的更新规则，
+可以发现在计算$\vec{W_i}$时很容易进行数据并行，
+只需要将$T$个训练样本拆分成$N$份，各自求出的梯度相加后即可得到总体梯度，
+然后再在CPU上更新$\vec{W_i}$及正规化得到$\vec{V_i}$。
+这样单层的实际训练时间可以在半小时以内。
+
+
+\subsection{对实现的简单验证}
+在本小节中，我们通过简单的合成数据，来对ISA实现的正确性进行验证。
+考虑各维服从独立高斯分布的40维随机变量$\vec{x}=\trans{(x_1,\cdots,x_{40})}$，
+和各维服从独立均匀分布的10维随机变量$\vec{y}=\trans{(y_1, \cdots, y_{10})}$，
+令
+\begin{eqnarray}
+    \vec{z} &=& \trans{(z_1, \cdots, z_{40})} \nonumber \\
+    z_{4i+j} &=& x_{4i+j+1}y_{i+1} \nonumber \\
+    && \forall 0 \le i \le 9,\,0 \le j \le 3
+\end{eqnarray}
+
+这样定义$\vec{z}$有两大好处，
+一方面$\vec{z}$满足了ISA所需要的super-Gaussian分布，
+另一方面将$\vec{z}$的各分量每4个分一组，则组内分量间也有了依赖性，
+可以测试ISA的性能。采样$10000$个$\vec{z}$得到$40\times 10000$的矩阵$\vec{Z}$，
+然后再从均匀分布中采样得到一个$64\times 40$的矩阵$\vec{M}$作为混合矩阵，
+用$\vec{I} = \vec{M}\vec{Z}$作为最终呈现给ISA算法的输入。
+为了评价ISA的效果，在求得ISA的权重矩阵$\vec{V}$后，
+带入\eqnref{ica:2}中，然后计算$\corr{s_i^2, s_j^2}$作为$(i, j)$
+处的元素绘制在\figref{isa:test}中，可以看出ISA能还原出这些随机变量间的内在结构，
+被分在同一组的变量间也有较高的相关性。
+
+\begin{figure}[h!]
+    \addplot{res/isa-toyeg.eps}
+    \caption{在合成数据上ISA还原出的输入变量的内在关系}
+    \label{fig:isa:test}
+\end{figure}
+
+% f}}}
+
+\section{实验配置}
+% f{{{
+在本文中，均使用两层卷积ISA。第一层训练时输入的图像块大小为
+$13\times 13 \times 13$，先用PCA把数据降维到$600$维，
+每个子空间包含$2$个线性特征，输出维度为$300$维；
+第二层的原始输入图像块大小为$21 \times 21 \times 21$，
+先在图像块上以$8$为步长、用第一层卷积ISA得到$300$通道的$2\times 2 \times 2$
+的图像块，共$2400$维作为第二层ISA训练的输入向量，PCA降维至$200$维，
+子空间大小为$4$，最终输出特征维度为$50$维。
+
+在SLIVER07的腹腔CT扫描数据上习得的第一层特征检测器如\figref{isa:filter}所示。
+观察可以发现，其中很多都像检测各种朝向边缘的Gabor filter；
+相邻两个检测器属于同一个子空间，可以看到它们的形态相似而在相位上有区别，
+这也表明了一个子空间所对应的特征具有一定的平移不变性。
+
+\begin{figure}[h!]
+    \addplot{res/isa-filter.png}
+    \caption{在实际数据上用ISA习得的第一层特征检测器；
+        图中展示了每个输出通道所对应的检测器，由于检测器本身是3D的，
+        这里为了展示方便，仅选取了其中某一维的中间面片。}
+    \label{fig:isa:filter}
+\end{figure}
+
+% f}}}
+
+\section{小结与讨论\label{sec:ISA:discuss}}
+% f{{{
+本节主要对ICA和ISA进行了介绍，描述了ISA到卷积神经网络的转化，并简述了训练方法。
+
+ISA作为一种非监督学习的方法，其习得的特征可以自发的展现一定的平移和相位不变性
+\cite{hyvarinen2000emergence}。
+层叠卷积ISA被应用在了视频中的动作识别\cite{le2011learning}、
+人脑MRI扫描图像的配准\cite{wu2013unsupervised}等领域，均取得不错的结果。
+
+然而，叠卷积ISA也有一定的局限性：
+\begin{enumerate}
+    \item 卷积核大小需要与输入图像块的大小相同，使得对应的卷积核较大，
+        而较大的卷积核会导致较慢的运行时间与较多的内存占用；
+    \item 训练时采取贪心逐层训练的方法，缺乏全局优化的过程；
+    \item 层数少，无法表达更复杂的结构，
+        而且单层ISA的训练也要求输入向量维度不能太少，
+        因此要想构造深层网络就需要很大的输入图像块；
+    \item 最主要的一个缺陷是，ISA是一种完全非监督的方法；
+        而实际应用中，我们往往希望特征对一定的平移、旋转等扰动具有不变性，
+        这种要求无法整合进ISA的框架。
+        虽然在实验中人们发现ISA习得的特征具有一定平移和相位不变性，
+        可是对这种不变性的形式和程度都没有理论保障。
+\end{enumerate}
+% f}}}
 
 % vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
