@@ -1,15 +1,13 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: get_roc.py
-# $Date: Sun May 31 19:04:41 2015 +0800
+# $Date: Mon Jun 01 10:14:07 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import pyximport
 pyximport.install()
 
 from get_roc_impl import get_roc
-
-import matplotlib.pyplot as plt
 
 import argparse
 import os
@@ -47,9 +45,10 @@ def main():
     roc = get_roc(args)
     if args.output:
         with open(args.output, 'w') as fout:
-            for x, y, z in roc:
-                fout.write('{} {} {}\n'.format(x, y, z))
+            for entry in roc:
+                fout.write('{}\n'.format(' '.join(map(str, entry))))
     if args.plot:
+        import matplotlib.pyplot as plt
         plt.plot(roc[:, 0], roc[:, 1])
         plt.show()
 

@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # $File: step1_pairwise_match.sh
-# $Date: Sun May 31 19:26:12 2015 +0800
+# $Date: Sun May 31 22:48:04 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 TRAIN_LIST=../../sliver07/list.txt
@@ -29,16 +29,10 @@ then
     exit 2
 fi
 
-if [ "$1" == "-c" ]
+[ "$1" == "-c" ] || rm -rf $output_dir
+
+if [ ! -d "$output_dir" ]
 then
-    echo "continue from previous result"
-    if [ ! -d "$output_dir" ]
-    then
-        echo "output dir $output_dir does not exist; please remove -c option"
-        exit 2
-    fi
-else
-    rm -rf $output_dir
     mkdir -pv $output_dir
     echo "output dir: $output_dir"
     (echo "cmdline: $@"; date; env) > $output_dir/runtime_env

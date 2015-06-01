@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: gen_run.py
-# $Date: Sun May 31 20:09:22 2015 +0800
+# $Date: Mon Jun 01 12:57:54 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import argparse
@@ -12,17 +12,22 @@ import os
 def append_single(output, desc):
     desc = desc.split('|')
     if len(desc) == 2:
-        desc.append('cos')
+        desc.append('cos l2')
     assert len(desc) == 3, desc
 
     cmd = "'{}'".format(desc[0].strip())
     name = "'{}'".format(desc[1].strip())
     metrics = desc[2].strip().split()
 
-    output.append('./step0_extract_feature.sh {} {}'.format(cmd, name))
+    output.append('if [ {} ]'.format(' -o '.join([
+        '! -e data/pairwise-match/{}-{}'.format(name, i)
+        for i in metrics])))
+    output.append('then')
+    output.append('./step0_extract_feature.sh {} {} -c'.format(cmd, name))
     for i in metrics:
-        output.append('./step1_extract_feature.sh {} {}'.format(name, i))
-    output.append('rm -rf data/feature/{}'.format(name))
+        output.append('./step1_pairwise_match.sh {} {} -c'.format(name, i))
+    output.append('fi')
+    output.append('rm -f data/feature/{}/*.* || true'.format(name))
 
     for i in metrics:
         output.append('./step2_get_roc.sh {}-{}'.format(name, i))
@@ -39,7 +44,7 @@ def main():
         lines = [i.strip() for i in fin.readlines()]
         lines = [i for i in lines if i]
 
-    random.shuffle(lines)
+    random.Random(20150531).shuffle(lines)
 
     gpus = args.gpus.split(',')
     output = [[

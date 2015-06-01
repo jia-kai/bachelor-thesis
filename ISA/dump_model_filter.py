@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: dump_model_filter.py
-# $Date: Sun May 10 21:34:27 2015 +0800
+# $Date: Sun May 31 21:03:03 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.ISA.model import ISAModel
@@ -17,14 +17,14 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('model')
     parser.add_argument('output')
+    parser.add_argument('--in_chl', type=int,
+                        help='specify model input channels')
     args = parser.parse_args()
 
     model = serial.load(args.model, ISAModel)
-    patch_size = int(model.coeff.shape[1] ** (1.0/3) + 0.5)
-    assert patch_size ** 3 == model.coeff.shape[1]
-
-    data = model.coeff
-    data = data.reshape(data.shape[0], patch_size, patch_size, patch_size)
+    if args.in_chl:
+        model.in_chl = args.in_chl
+    data = model.get_conv_coeff()
     serial.dump(data, args.output, use_pickle=True)
 
 if __name__ == '__main__':

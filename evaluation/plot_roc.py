@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: plot_roc.py
-# $Date: Sun May 17 18:27:27 2015 +0800
+# $Date: Mon Jun 01 00:50:37 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import matplotlib.pyplot as plt
@@ -31,19 +31,35 @@ def get_marker_cycler():
     markers = ['D', 's', '^', 'd', 'o', 'p', 'v', '<', '>', 'h']
     return cycle(markers)
 
+def get_color_cycler():
+    # http://tableaufriction.blogspot.ro/2012/11/finally-you-can-use-tableau-data-colors.html
+    tableau10 = np.array(
+        [(255, 188, 121), (255, 128, 14), (207, 207, 207),
+         (200, 82, 0), (171, 171, 171), (162, 200, 236),
+         (137, 137, 137), (95, 158, 209), (89, 89, 89),
+         (0, 107, 164)],
+        dtype=np.float32)
+
+    tableau10 *= 0.9 / 255.0
+
+    return cycle(tableau10)
+
 def read_data(args, fpath):
     xdata = []
     ydata = []
+    xerr = []
+    yerr = []
     with open(fpath) as fin:
         for line in fin:
             if line.startswith('#'):
                 continue
             line = map(float, line.split())
-            if line[0] >= args.xmin:
-                xdata.append(line[0])
-                ydata.append(line[1])
+            xdata.append(line[0])
+            ydata.append(line[1])
+            xerr.append(line[3])
+            yerr.append(line[4])
 
-    return xdata, ydata
+    return map(np.array, (xdata, ydata, xerr, yerr))
 
 def label_from_filename(fname):
     s = os.path.basename(fname)
@@ -74,6 +90,7 @@ def main():
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
+    ax.set_xlim(args.xmin, 1)
     ax.set_xlabel(args.xlabel)
     ax.set_ylabel(args.ylabel)
     #ax.xaxis.set_major_locator(MultipleLocator(0.1))
@@ -83,14 +100,20 @@ def main():
         ax.set_xscale('log')
 
     markers = get_marker_cycler()
+    colors = get_color_cycler()
 
     data_fpath = [(i, label_from_filename(i)) for i in args.data_fpath]
 
     for fname, label in data_fpath:
-        x, y = read_data(args, fname)
+        x, y, xerr, yerr = read_data(args, fname)
         marker = next(markers)
+        cur_color = next(colors)
         ax.plot(x, y, marker=marker, label=label, linewidth=2,
-                markevery=len(x)/5, markersize=10, markeredgecolor='none')
+                markevery=0.3, markersize=10,
+                markeredgecolor='none', color=cur_color)
+        ax.fill_between(x, y - yerr, y + yerr, alpha=0.1,
+                        edgecolor='none', facecolor=cur_color)
+
 
     leg = plt.legend(loc=args.loc, fancybox=True, numpoints=1)
     if args.trleg:
