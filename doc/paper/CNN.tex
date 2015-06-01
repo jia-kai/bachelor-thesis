@@ -1,5 +1,5 @@
 % $File: CNN.tex
-% $Date: Sun May 31 21:18:00 2015 +0800
+% $Date: Mon Jun 01 23:50:58 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于深度卷积神经网络的特征提取}
@@ -10,6 +10,53 @@
 同时具有较强区分性的特征。
 
 \section{网络结构}
+深度卷积神经网络一般由卷积、池化、全连接等层组成，
+卷积和全连接层后一般接一个非线性函数。在本小节中，
+先对这三种层对应的数学操作进行介绍，随后再给出本文所用的网络结构。
+
+\subsection{基本数学操作}
+
+
+\subsection{本文所用网络结构}
+本文仅试验了一种网络结构，其计算层由三层卷积、一层池化、两层全连接组成。
+为了与\secref{isa:expr}所描述的ISA模型公平比较，
+输入与之相同用$21\times 21 \times 21$的图像块，输出同样为$50$维特征。
+图像块在进入网络之前，
+先要经过线性变换$\vec{y}=k\vec{x}+b$，其中$k$、$b$为在训练集上求得的标量常数，
+使得$E[\vec{y}]=0$，$\max(\abs{\vec{y}})=1$。
+网络中所有卷积和全连接层均使用使用ReLU作为非线性，即$f(x)=\max(x, 0)$。
+具体的网络结构参数见\tabref{cnn:arch}。
+
+\begin{table}[h!]
+    \begin{center}
+        \caption{本文所用的深度卷积神经网络结构}
+        \label{tab:cnn:arch}
+        \begin{tabular}{c|c|c}
+            \hline
+            {\heiti 层编号} & {\heiti 输入大小} & {\heiti 层内容} \\ \hline
+            0 & $1\times 21 \times 21  \times 21$ & 线性变换：$y=kx+b$ \\
+            1 & $1\times 21 \times 21  \times 21$ & $Conv(20, 4)$ \\
+            2 & $20\times 18 \times 18  \times 18$ & $MeanPooling(2)$ \\
+            3 & $20\times 9 \times 9 \times 9$ & $Conv(24, 4)$ \\
+            4 & $24\times 6 \times 6 \times 6$ & $Conv(28, 4)$ \\
+            5 & $28\times 3 \times 3 \times 3$ & $FC(60)$ \\
+            6 & $60$ & $FC(50)$ \\
+            7 & $50$ & 损失函数 \\
+        \end{tabular}
+    \end{center}
+    \footnotesize
+    注：
+    \begin{center}
+        \begin{itemize}
+            \item $Conv(c, s)$ 表示输出通道数为$c$，
+                卷积核大小为$s\times s \times s$，
+                步长为$1$的3D卷积
+            \item $MeanPooling(s)$ 表示大小为$s\times s \times s$
+                且无重叠的均值池化
+            \item $FC(n)$ 表示输出维度为$n$的全连接层
+        \end{itemize}
+    \end{center}
+\end{table}
 
 \section{损失函数}
 \subsection{分类输出：Softmax与交叉熵损失函数}

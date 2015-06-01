@@ -1,5 +1,5 @@
 % $File: ISA.tex
-% $Date: Sun May 31 21:15:34 2015 +0800
+% $Date: Mon Jun 01 23:53:04 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于层叠卷积ISA的特征提取}
@@ -237,7 +237,7 @@ $\vec{A}$可对应看作一个$m\times 1 \times p \times p \times p$的卷积核
 
 % f}}}
 
-\section{实验配置}
+\section{实验配置\label{sec:isa:expr}}
 % f{{{
 在本文中，均使用两层卷积ISA。第一层训练时输入的图像块大小为
 $13\times 13 \times 13$，先用PCA把数据降维到$600$维，
@@ -253,11 +253,14 @@ $13\times 13 \times 13$，先用PCA把数据降维到$600$维，
 这也表明了一个子空间所对应的特征具有一定的平移不变性。
 
 \begin{figure}[h!]
-    \addplot{res/isa-filter.png}
-    \caption{在实际数据上用ISA习得的第一层特征检测器；
-        图中展示了每个输出通道所对应的检测器，由于检测器本身是3D的，
-        这里为了展示方便，仅选取了其中某一维的中间面片。}
-    \label{fig:isa:filter}
+    {
+        \addplot{res/isa-filter.png}
+        \caption{在实际数据上用ISA习得的第一层特征检测器}
+        \label{fig:isa:filter}
+    }
+    \footnotesize
+    图中展示了每个输出通道所对应的检测器，由于检测器本身是3D的，
+    这里为了展示方便，仅选取了其中某一维的中间面片。
 \end{figure}
 
 % f}}}
