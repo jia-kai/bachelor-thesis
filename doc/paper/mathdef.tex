@@ -1,0 +1,22 @@
+% $File: mathdef.tex
+% $Date: Sun May 31 13:34:49 2015 +0800
+% $Author: jiakai <jia.kai66@gmail.com>
+
+\usepackage{bm}
+\usepackage{mathtools}
+
+\newcommand{\trans}[1]{#1^\intercal}
+\numberwithin{equation}{section}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\prob}[2][]{p_{#1}\left(#2\right)}
+\renewcommand{\det}[1]{\text{det}\left(#1\right)}
+\newcommand{\cov}[1]{\text{cov}\left(#1\right)}
+\newcommand{\corr}[1]{\text{corr}\left(#1\right)}
+\newcommand{\abs}[1]{\left|#1\right|}
+
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}

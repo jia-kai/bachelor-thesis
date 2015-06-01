@@ -1,0 +1,38 @@
+% $File: expr.tex
+% $Date: Sat May 23 11:09:27 2015 +0800
+% $Author: jiakai <jia.kai66@gmail.com>
+
+\chapter{评测方法与实验结果}
+本章首先提出一种评测方法，其完全基于肝脏分割标注，
+无需基于另一种柔性匹配算法，也无需显式计算两个标注间的点对应关系，
+可以直接评价特征的优劣，简便高效。随后本章介绍具体实验配置，
+并报告基于该评测方法的实验结果。
+
+\section{评测方法}
+
+score = AUC + sparseness
+
+\subsection{单点匹配的判定}
+带符号边界距离，GPU KNN计算，cos/L2 dist
+
+\subsection{ROC曲线及曲线下面积}
+
+\subsection{稀疏程度的衡量}
+
+
+\section{实验配置}
+
+\subsection{实验环境}
+
+\subsection{训练数据}
+
+\subsection{模型参数设定}
+
+
+\section{实验结果}
+曲线，表格
+
+
+% vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
+
+
