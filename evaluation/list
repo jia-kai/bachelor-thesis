@@ -2,6 +2,7 @@ data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/classification/data/0515-ori
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/classification/data/0515-withpca | clsfy-d800-pca
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/classification/data/0517-orig | clsfy-d5000
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/classification/data/0523-orig | clsfy-d400
+data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/classification/data/0601-orig | clsfy-d2000
 
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0525-d10000-moregap/best_training_cost | mtrc-mg-d10000
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0525-d10000-pca | mtrc-mg-d10000-pca
@@ -9,5 +10,7 @@ data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0523-d10000/best_traini
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0523-d10000-pca | mtrc-d10000-pca
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0529-moregap/best_training_cost | mtrc-mg-d5000
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0531/best_training_cost | mtrc-d5000
+data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0517-adam-smalldata/best_training_cost | mtrc-d800
+data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0528-d800-moregap/best_training_cost | mtrc-mg-d800
 
 ../ISA/sliver07/run.sh | ISA
