@@ -1,5 +1,5 @@
 % $File: mathdef.tex
-% $Date: Wed Jun 03 22:54:42 2015 +0800
+% $Date: Fri Jun 05 18:42:54 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \usepackage{bm}
@@ -8,16 +8,22 @@
 \newcommand{\trans}[1]{#1^\intercal}
 \numberwithin{equation}{section}
 \renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\tvec}[1]{\tilde{\vec{#1}}}
 \newcommand{\dif}{\mathrm{d}}
 \newcommand{\prob}[2][]{p_{#1}\left(#2\right)}
 \renewcommand{\det}[1]{\text{det}\left(#1\right)}
 \newcommand{\cov}[1]{\text{cov}\left(#1\right)}
 \newcommand{\corr}[1]{\text{corr}\left(#1\right)}
 \newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\real}{\mathbb{R}}
 
 \DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
 \DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
+
+% for section cnn
+\newcommand{\augdataset}[1]{D^{\mathcal{T}}(\vec{#1})}
+\newcommand{\augftrset}[1]{S_{\vec{W}}^{\mathcal{T}}(\vec{#1})}
 
 % vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}

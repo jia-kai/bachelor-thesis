@@ -1,5 +1,5 @@
 % $File: CNN.tex
-% $Date: Wed Jun 03 23:00:43 2015 +0800
+% $Date: Sun Jun 07 23:52:06 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于深度卷积神经网络的特征提取}
@@ -9,10 +9,56 @@
 通过人工构造的损失函数，引导网络学习出对仿射变换和Gamma校正有鲁棒性、
 同时具有较强区分性的特征。
 
+\section{动机\label{sec:cnn:motivation}}
+% f{{{
+本小节将介绍我们训练网络的最初动机，以便为后续网络的具体设计打下基础。
+
+\secref{ISA:discuss}中已经提到，非监督的层叠卷积ISA一个严重缺陷就是
+没有考虑我们希望特征具有的不变性的先验知识；因此在本章中，
+我们希望用深度卷积神经网络来解决这个问题。
+
+对3D图像的特征提取过程可以形式化地表达为$\vec{y}=f(\vec{X};\vec{W})$，
+其中$f$是特征提取模型，在这里就是深度卷积神经网络；$\vec{W}$是该模型所需的参数；
+$\vec{X}\in\mathcal{I}$是输入的3D图像块； $\vec{y}\in\mathcal{F}$是输出的特征。
+在本文中，输入图像空间$\mathcal{I}=\real^{21\times 21\times 21}$，
+特征空间$\mathcal{F}=\real^{50}$。
+
+由于实际采集的医学影像会受到各种随机因素和个体差异的干扰，
+在图像上造成平移、旋转、拉伸、缩放、局部噪声、明暗变化等变化。
+这些变换可以用函数$T:\mathcal{I}\mapsto\mathcal{I}$表示，
+$T\in\mathcal{T}$，用$\mathcal{T}$表示所有可能变换的集合。
+
+先定义两个符号：
+\begin{eqnarray}
+    \augdataset{X} &=& \left\{T(\vec{X}): T\in\mathcal{T}\right\} \nonumber \\
+    \augftrset{X} &=& \left\{f(\vec{X};\vec{W}):
+    \vec{X}\in\augdataset{X}\right\} \label{eqn:cnn:augdef}
+\end{eqnarray}
+
+我们希望特征$\vec{y}$满足两个有一定矛盾的性质：
+\begin{enumerate}
+    \item 有较强的区分力：对于不属于解剖学上同一位置的图像
+        $\vec{X_1}$和$\vec{X_2}$，
+        $\augftrset{X_1}$和$\augftrset{X_2}$的类间变化应尽量大
+    \item 有较强的鲁棒性：对于属于解剖学上同一位置的图像
+        $\vec{X_1}$和$\vec{X_2}$，
+        $\augftrset{X_1}$和$\augftrset{X_2}$的类间变化应尽量小；
+        而且对于任意图像$\vec{X}\in\mathcal{I}$，
+        $\augftrset{X}$的类内变化也应该尽量小
+\end{enumerate}
+
+为了引导网络提取出具有这样性质的特征，
+在\secref{cnn:loss}中我们给出两种损失函数，
+并在\secref{cnn:aug}中给出$T$和$\mathcal{T}$的具体表示。
+
+
+% f}}}
+
 \section{网络结构}
+% f{{{
 深度卷积神经网络一般由卷积、池化、全连接等层组成，
 卷积和全连接层后一般接一个非线性函数。在本小节中，
-先对这三种层对应的数学操作进行介绍，随后再给出本文所用的网络结构。
+我们先对所需要的数学操作进行简单介绍，随后再给出本文所用的网络结构。
 
 \subsection{基本数学操作}
 在本小节中，我们对处理3D图像数据的深度卷积神经网络所用到的数学操作进行简单介绍。
@@ -20,6 +66,7 @@
 保持空间信息，随后用全连接层进行降维，把4D张量转换为向量，最终得到期望的输出。
 4D张量的维度用$(c, h, w, d)$表示，其中$c$为通道数，
 $(h, w, d)$是在3D空间中各维对应的坐标。对于只有灰度值的3D图像块，其通道数$c=1$。
+
 
 \subsubsection{卷积层}
 卷积层的作用是在不同的空间位置用同一组特征检测器在输入数据上提取特征。
@@ -46,6 +93,7 @@ $\vec{W}$表示卷积核，$\vec{b}$表示偏置量，则有如下关系：
 把这样的特征检测器重复应用到输入图像的所有空间位置得到输出图像，
 输出图像有$c_o$个通道，每个空间位置都对应了一个$c_o$维的特征。
 
+
 \subsubsection{池化层}
 池化层的作用是增强特征的平移不变性，同时降低数据在空间上的维度。
 一般有最大值池化(max pooling)、均值池化(mean pooling)等。
@@ -56,10 +104,50 @@ $\vec{W}$表示卷积核，$\vec{b}$表示偏置量，则有如下关系：
 \begin{eqnarray}
     \vec{Y}(c, x, y, z) = f(X(c, sx:sx+k, sy:sy+k, sz:sz+k))
 \end{eqnarray}
-其中$f$为池化的操作，如取最大值、平均值等；
+其中$f$为池化的具体操作，如取最大值、平均值等；
 $\vec{X}(c, i_0:i_1, j_0:j_1, k_0:k_1)$
 表示在$\vec{X}$的二、三、四维上分别取$[i_0, i_1), [j_0, j_1), [k_0, k_1)$
 区间所对应的子张量。
+
+池化层本质上是用一片空间范围内的最大值、平均值等统计量来代替这个空间内的特征，
+从而当输入图像发生微小平移时，最终的特征仍能保持稳定。
+
+
+\subsubsection{全连接层}
+一般而言，在若干卷积和池化层后会有一到二层全连接层来产生最终的特征输出。
+全连接层本质上是对特征降维，包含一个矩阵$\vec{W}$和偏置量$\vec{b}$，
+输入$\vec{x}$和输出$\vec{y}$都是向量；如果原始输入是$(c,h,w,d)$的图像，
+则直接平整化看作$chwd$维的向量。各变量间有如下关系：
+\begin{eqnarray}
+    \vec{y} = \vec{W}\vec{x} + \vec{b}
+\end{eqnarray}
+
+
+\subsubsection{激活函数}
+一般而言，卷积和全连接层后会接上激活函数(activation function)。
+激活函数就是一个非线性函数，
+用于对4D或1D特征的每个元素进行非线性变换。
+如果没有激活函数，
+则多层网络的堆叠等价于一次线性变换，深度网络将没有意义。
+而有了激活函数，就真正赋予了网络拟合复杂函数的能力，
+激活函数满足一定要求即可让简单的多层感知机拟合任意连续实函数
+\cite{hornik1989multilayer}。
+
+一般常用的激活函数有sigmoid($f(x) = (1+e^{-x})^{-1}$)和
+ReLU($f(x) = \max(0, x)$)。
+但对于sigmoid这种有界函数，用梯度下降训练时一般会比ReLU的收敛慢很多
+\cite{krizhevsky2012imagenet}；在本文中我们都使用ReLU作为激活函数。
+
+
+\subsubsection{Softmax与分类输出}
+如果希望让网络实现$N$分类概率输出，即对于预定义的$N$个类$C_1,\cdots,C_N$，
+输出$\prob{\vec{X}\in C_i}$，一般而言需要在最后接一层$N$维输出的全连接层，
+然后接一个Softmax分类层。
+
+Softmax的定义如下：对于输入$\vec{x}$和输出$\vec{y}$，满足
+\begin{eqnarray}
+    y_i &=& \frac{\exp{x_i}}{\sum_j{\exp{x_j}}}
+\end{eqnarray}
 
 
 \subsection{本文所用网络结构}
@@ -69,7 +157,7 @@ $\vec{X}(c, i_0:i_1, j_0:j_1, k_0:k_1)$
 图像块在进入网络之前，
 先要经过线性变换$\vec{y}=k\vec{x}+b$，其中$k$、$b$为在训练集上求得的标量常数，
 使得$E[\vec{y}]=0$，$\max(\abs{\vec{y}})=1$。
-网络中所有卷积和全连接层均使用使用ReLU作为非线性，即$f(x)=\max(x, 0)$。
+网络中所有卷积和全连接层均使用使用ReLU作为激活函数，
 具体的网络结构参数见\tabref{cnn:arch}。
 
 \begin{table}[h!]
@@ -102,20 +190,196 @@ $\vec{X}(c, i_0:i_1, j_0:j_1, k_0:k_1)$
         \end{itemize}
     \end{center}
 \end{table}
+% f}}}
 
-\section{损失函数}
-\subsection{分类输出：Softmax与交叉熵损失函数}
-\subsection{特征输出：度量学习}
+\section{损失函数\label{sec:cnn:loss}}
+% f{{{
+损失函数用于将网络的输出和监督信号结合起来，
+得到一个用于最小化的损失值作为优化目标。
 
-\section{数据增广}
-简要形式化描述希望特征对变换$F(A, \gamma)=(affine(A), gamma(\gamma))$
-满足的不变性
+在本小节中，我们将介绍针对前文所述的总体目标而采样的两种损失函数。
+
+\subsection{基于分类输出的间接特征学习}
+本文讨论的是非监督学习，
+在没有标注的情况下无法知道两个图像块是否对应统一解剖学上的位置。
+在本节中，针对\secref{cnn:motivation}里所提出的两点性质，
+我们简单地认为训练数据里的所有图像块两两之间都属于不同的解剖学位置，
+并把问题转换为一个分类问题。
+
+具体而言：仍沿用\eqnref{cnn:augdef}中的$\augdataset{X}$记号，
+假设有$N$个训练数据$\vec{X_1},\cdots,\vec{X_N}$，
+我们训练一个分类网络，希望对于任意$1\le i \le N$，
+$\augdataset{X_i}$中的所有图像都被分类到第$i$类。
+
+监督信号记作$\bar{\vec{y}}$，用onehot编码，
+即如果$\vec{X}\in \augdataset{X_i}$，则$y_k=[i=k]$。
+网络Softmax层输出记作$\vec{y}$，则损失函数为：
+\begin{eqnarray}
+    L(\vec{y}, \bar{\vec{y}}) &=& -\log \trans{\vec{y}}\bar{\vec{y}}
+\end{eqnarray}
+
+\subsection{基于度量学习的直接特征学习}
+另一种思路是使用度量学习，即希望网络学习出一个从图像空间$\mathcal{I}$
+到低维的度量空间$\mathcal{F}$的嵌入，
+使得$\mathcal{F}$中特征的距离满足\secref{cnn:motivation}中的两条性质。
+当然，由于没有标注信息，在性质2中我们只考虑同一类的类内变化。
+
+我们使用基于三元组输入的度量学习。
+在同一个被试的扫描结果上采样不同位置的两个图像块$\vec{X_1}, \vec{X_2}$，
+再随机采样$\vec{X_1}' \in \augdataset{X_1}, \vec{X_2}' \in \augdataset{X_1},
+\vec{X_3}' \in \augdataset{X_2}$，记$\vec{y_i}=f(\vec{X_i}';\vec{W})$。
+
+应该要求$d(\vec{y_1},\vec{y_2})$尽量小，$d(\vec{y_1}, \vec{y_3})$尽量大，
+其中距离测度$d$选择余弦距离。具体如下：
+\begin{eqnarray}
+    d(\vec{x}, \vec{y}) &=& 1 -
+        \frac{\trans{\vec{x}}\vec{y}}{\abs{\vec{x}}\abs{\vec{y}}} \nonumber \\
+    L(\vec{y_1}, \vec{y_2}, \vec{y_3}) &=&
+        \max\left(0,\, d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})
+        \right)
+\end{eqnarray}
+其中$\delta$可以控制类间变化的程度。
+% f}}}
+
+\section{数据增广\label{sec:cnn:aug}}
+% f{{{
+数据增广的过程本质上是定义了\secref{cnn:motivation}中的集合$\mathcal{T}$。
+我们采用两种方式进行数据增广：Gamma校正和仿射变换。
+Gamma校正有一个标量参数$\gamma$，用以进行亮度变换；
+仿射变换的参数是一个$3\times 4$的矩阵$\vec{A}$，
+用以描述3D空间里包含旋转和非等比拉伸的非刚性形变。
+
+也就是说，$\mathcal{T}$定义为在给定参数范围内所有可能的这两种变换的组合。
+这是一个无限不可数集合，实际应用时我们需要在其中均匀采样。
+为此，需要给定参数$\gamma_l, \gamma_u$表示Gamma变换的参数区间，
+$s_l, s_u$表示仿射变换的拉伸程度区间，以及$\theta_u$表示仿射变换的最大旋转角。
+在本小节中，我们将对Gamma校正和仿射变换进行具体定义，
+并介绍如何根据上述给定的参数进行均匀采样。
 
 \subsection{Gamma校正}
+Gamma校正是用一个指数函数对输入灰度图像上各点的亮度值进行替换的过程。
+定义为：
+\begin{eqnarray}
+    \vec{y} &=& L + (U-L)\left(\frac{\vec{x}-L}{U-L}\right)^\gamma
+\end{eqnarray}
+
+其中常数$L, U$表示图像灰度值动态范围的下界和上界。$\gamma=1$时对应原图，
+$\gamma < 1$时亮度提高，$\gamma > 1$时亮度降低，如\figref{cnn:aug:gamma}所示。
+
+\begin{figure}[h!]
+    \addplot{res/gamma.png}
+    \caption{Gamma校正的效果}
+    \label{fig:cnn:aug:gamma}
+\end{figure}
+
+对Gamma校正采样时，需要给定$\gamma$值的上界和下界，
+取服从该区间上均匀分布的随机变量即可。
 
 \subsection{三维仿射变换}
 
-\section{训练方法}
+\subsubsection{定义}
+对3D空间中的点$\vec{p} = (x, y, z)$，其齐次坐标$\tvec{p}=(x, y, z, 1)$。
+对于仿射变换参数矩阵$\vec{A} \in \real^{3\times 4}$，
+记$\vec{q}$为$\vec{p}$变换后的坐标，则满足
+\begin{eqnarray}
+    \tvec{q} &=& \left(\begin{array}{cccc}
+        & & \vec{A} & \\
+        0 & 0 & 0 & 1
+    \end{array}\right)\tvec{p}
+\end{eqnarray}
+
+在本文中，我们对3D图像进行仿射变换时，
+先对输出图像上的每个点按上述方法求出其在原图上的坐标，
+再根据其周围相邻的$8$个点的灰度值进行双线性插值。
+
+\subsubsection{对变换矩阵的分解和采样}
+为了能均匀地对三维仿射变换进行采样，在此我们先讨论对其进行分解的方法。
+对于变换矩阵$\vec{A} = (\vec{A_0}\quad\vec{b})$，
+其中$\vec{A_0}$是$3\times 3$矩阵表示对坐标系的扭曲，
+$\vec{b}$是3维向量表示坐标的偏移量，并且有$\vec{q}=\vec{A_0}\vec{p}+\vec{b}$。
+对$\vec{A_0}$进行SVD分解：
+\begin{eqnarray}
+    \vec{A_0} = \vec{U}\vec{\Sigma}\trans{\vec{V}}
+\end{eqnarray}
+其中$\vec{U}, \vec{V}$都是正交阵，在几何意义上也是3D旋转矩阵。
+
+令$\vec{R} = \vec{U}\trans{\vec{V}}$，则$\vec{R}$也是3D旋转矩阵，并且
+\begin{eqnarray}
+    \vec{A_0} = \vec{U}\vec{\Sigma}\trans{\vec{U}}\vec{R}
+    \label{eqn:cnn:affine:a0}
+\end{eqnarray}
+
+于是对任意仿射变换$\vec{A}$，其作用可理解三个操作依次进行：
+\begin{enumerate}
+    \item 用$\vec{R}$对点进行旋转
+    \item 按照$\trans{\vec{U}}$定义的三个方向独立拉伸，
+        拉伸程度由对角阵$\vec{\Sigma}$决定。
+    \item 根据$\vec{b}$进行平移
+\end{enumerate}
+
+在上述分解的基础上，我们就可以对仿射变化矩阵$\vec{A} = (\vec{A_0}\quad\vec{b})$
+进行采样了。
+对偏移量$\vec{b}$的采样很简单，在此略去；我们主要讨论矩阵$\vec{A_0}$的采样方法。
+给定参数$s_l, s_u$表示拉伸程度，$\theta_u$表示最大旋转角度。
+记$U(a, b)$表示$[a, b]$间的均匀分布，
+$\vec{R}(\theta)$
+表示按旋转角度均匀分布且最大旋转角度为$\theta$的随机旋转矩阵的分别。
+则可按如下方法生成旋转和拉伸都均匀分布的随机矩阵$\vec{A_0}$：
+\begin{eqnarray}
+    s_0 &\sim& U(s_l, s_u) \nonumber \\
+    s_1 &\sim& U(s_l, s_u) \nonumber \\
+    s_2 &\sim& U(s_l, s_u) \nonumber \\
+    \vec{R} &\sim& \vec{R}(\theta_u) \nonumber \\
+    \vec{U} &\sim& \vec{R}(2\pi) \nonumber \\
+    \vec{A_0} &=&  \vec{U}\left(\begin{array}{ccc}
+        s_0 & & \\
+        & s_1 & \\
+        & & s_2
+    \end{array}\right)\trans{\vec{U}}\vec{R}
+\end{eqnarray}
+
+其中，$x\sim D$表示取随机变量$x$服从分布$D$。旋转矩阵分布$\vec{R}(\theta)$
+可用基于四元组的3D旋转表示\cite{kuipers1999quaternions}来构造：
+先生成单位球面上的均匀分布随机变量$\vec{w}$，再取$\alpha \sim U(0, \theta)$，
+将四元组$[\vec{w}, \alpha]$转换为对应的旋转矩阵，就服从$\vec{R}(\theta)$分布。
+在\figref{cnn:aug:affine}中，
+我们对按上述方法采样出的仿射变换的作用效果进行一个直观的展示。
+
+\begin{figure}[h!]
+    \addplot{res/placeholder.png}
+    \caption{随机采样的仿射变换的作用效果}
+    \label{fig:cnn:aug:affine}
+\end{figure}
+
+% f}}}
+
+\section{小结与讨论}
+% f{{{
+在本章中，我们基于需要在模型中人为引入不变性同时确保区分力的总体目标，
+为非监督学习设计了损失函数，并利用深度卷积神经网络来进行损失函数的优化。
+同时，我们也明确了在本文中，对特征不变性的要求局限在Gamma校正和仿射变换上，
+并给出了具体的数学操作和采样方法。
+
+本章给出的两种损失函数，在该任务的具体情景下，也有各自的优劣。
+
+基于多分类的间接特征学习，能够同时考虑到所有训练数据上提取的特征，
+因此能更好地进行全局的鲁棒性和区分性的平衡与优化；
+然而，由于缺乏各个被试的数据上点对应关系的标注，
+在采样训练数据时，如果每个被试上的采样点过多，
+可能会导致在不同的被试上采集到同一个解剖学位置的点，
+这时再强行训练将它们分成两类，就容易让模型过度关注到被试个体的特征上，
+使得最终特征不够鲁棒，所以它需要恰到好处的训练数据采样密度，
+而且训练数据的增加不一定能带来更好的性能。而且在实践中，
+合适的采样密度往往难以理论评估，只能实验确定。
+
+基于度量学习的直接特征学习，
+则不存在上述对采样密度的过度依赖，
+因为我们只在同一个被试上的不同采样点间进行度量学习；
+然而也正式因为如此，其缺乏全局优化的过程，
+因此综合来看也不一定比多分类的学习方法有明显的优势或劣势。
+
+对于这些问题，我们将在后文的实验环节中进行进一步探索。
+% f}}}
 
 % vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
 

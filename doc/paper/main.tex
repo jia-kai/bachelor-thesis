@@ -1,7 +1,8 @@
 % $File: main.tex
-% $Date: Mon Jun 01 23:21:58 2015 +0800
+% $Date: Fri Jun 05 18:20:38 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
+\PassOptionsToPackage{bookmarksdepth=3}{hyperref}
 \documentclass[bachelor]{thuthesis}
 %\documentclass[master]{thuthesis}
 %\documentclass[doctor]{thuthesis}
@@ -19,15 +20,18 @@
 
 % custom commands
 
+\setcounter{tocdepth}{2}
+
+
 % \textref{marker}{text}
 \newcommand{\textref}[2]{\hyperref[#1]{#2}}
 \newcommand{\figref}[1]{\hyperref[fig:#1]{\figurename~\ref*{fig:#1}}}
 \newcommand{\tabref}[1]{\hyperref[tab:#1]{\tablename~\ref*{tab:#1}}}
-\newcommand{\secref}[1]{\hyperref[sec:#1]{第\ref*{sec:#1}章}}
+\newcommand{\secref}[1]{\hyperref[sec:#1]{\ref*{sec:#1}节}}
 \newcommand{\eqnref}[1]{\hyperref[eqn:#1]{(\ref*{eqn:#1})}}
 
 \newcommand{\addplot}[1]{\centering
-    \includegraphics[width=0.7\paperwidth,
+    \includegraphics[width=0.9\textwidth,
     height=0.4\paperheight,keepaspectratio]{#1}}
 
 
