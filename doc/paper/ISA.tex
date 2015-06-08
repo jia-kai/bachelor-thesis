@@ -1,8 +1,8 @@
 % $File: ISA.tex
-% $Date: Mon Jun 01 23:53:04 2015 +0800
+% $Date: Mon Jun 08 22:59:35 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
-\chapter{基于层叠卷积ISA的特征提取}
+\chapter{基于层叠卷积ISA的特征提取\label{chap:ISA}}
 本章主要介绍独立子空间分析(Independent Subspace Analysis, ISA)方法的基本原理，
 及将其多次层叠后构成深度网络进行特征提取的方法，并对该方法进行简单的讨论。
 
@@ -138,7 +138,7 @@ $\vec{e} = \trans{(e_1,\cdots,e_K)}$就是ISA最终的特征输出。
 
 % f}}}
 
-\section{层叠卷积ISA}
+\section{层叠卷积ISA\label{sec:isa:stacked-convolutional}}
 % f{{{
 以3D的CT扫描图像为例，要将ISA应用于图像处理，
 一般是在扫描结果的数据里随机抽取$T$个$p\times p \times p$的图像小块，

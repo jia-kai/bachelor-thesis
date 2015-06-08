@@ -1,5 +1,5 @@
 % $File: CNN.tex
-% $Date: Sun Jun 07 23:52:06 2015 +0800
+% $Date: Mon Jun 08 23:55:57 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于深度卷积神经网络的特征提取}
@@ -122,6 +122,11 @@ $\vec{X}(c, i_0:i_1, j_0:j_1, k_0:k_1)$
     \vec{y} = \vec{W}\vec{x} + \vec{b}
 \end{eqnarray}
 
+在使用网络提取特征时，为了能在较大输入图像上快速地逐点提取特征，
+全连接层可以按照类似\secref{isa:stacked-convolutional}中的思路转化为卷积层，
+这样整个网络就全部由卷积和池化组成，输出大小可随输入大小变化，
+对输入图像上的每个点均在输出图像上有唯一对应点，
+其各个通道就是输入图像上以该点为中心的图像块所对应的特征。
 
 \subsubsection{激活函数}
 一般而言，卷积和全连接层后会接上激活函数(activation function)。
@@ -139,7 +144,7 @@ ReLU($f(x) = \max(0, x)$)。
 \cite{krizhevsky2012imagenet}；在本文中我们都使用ReLU作为激活函数。
 
 
-\subsubsection{Softmax与分类输出}
+\subsubsection{Softmax与多分类输出}
 如果希望让网络实现$N$分类概率输出，即对于预定义的$N$个类$C_1,\cdots,C_N$，
 输出$\prob{\vec{X}\in C_i}$，一般而言需要在最后接一层$N$维输出的全连接层，
 然后接一个Softmax分类层。
@@ -158,7 +163,9 @@ Softmax的定义如下：对于输入$\vec{x}$和输出$\vec{y}$，满足
 先要经过线性变换$\vec{y}=k\vec{x}+b$，其中$k$、$b$为在训练集上求得的标量常数，
 使得$E[\vec{y}]=0$，$\max(\abs{\vec{y}})=1$。
 网络中所有卷积和全连接层均使用使用ReLU作为激活函数，
-具体的网络结构参数见\tabref{cnn:arch}。
+具体的网络结构参数见\tabref{cnn:arch}。需要特别指出的是，
+在训练时，我们需要表中第7层以提供损失函数；在使用时，
+则去掉第7层，把第6层的输出直接作为特征使用。
 
 \begin{table}[h!]
     \begin{center}
@@ -199,7 +206,7 @@ Softmax的定义如下：对于输入$\vec{x}$和输出$\vec{y}$，满足
 
 在本小节中，我们将介绍针对前文所述的总体目标而采样的两种损失函数。
 
-\subsection{基于分类输出的间接特征学习}
+\subsection{基于多分类的间接特征学习\label{sec:cnn:loss:clsfy}}
 本文讨论的是非监督学习，
 在没有标注的情况下无法知道两个图像块是否对应统一解剖学上的位置。
 在本节中，针对\secref{cnn:motivation}里所提出的两点性质，
@@ -218,8 +225,9 @@ $\augdataset{X_i}$中的所有图像都被分类到第$i$类。
     L(\vec{y}, \bar{\vec{y}}) &=& -\log \trans{\vec{y}}\bar{\vec{y}}
 \end{eqnarray}
 
-\subsection{基于度量学习的直接特征学习}
-另一种思路是使用度量学习，即希望网络学习出一个从图像空间$\mathcal{I}$
+\subsection{基于度量学习的直接特征学习\label{sec:cnn:loss:mtrc}}
+另一种思路是使用度量学习(metric learning)，
+即希望网络学习出一个从图像空间$\mathcal{I}$
 到低维的度量空间$\mathcal{F}$的嵌入，
 使得$\mathcal{F}$中特征的距离满足\secref{cnn:motivation}中的两条性质。
 当然，由于没有标注信息，在性质2中我们只考虑同一类的类内变化。
@@ -237,6 +245,7 @@ $\augdataset{X_i}$中的所有图像都被分类到第$i$类。
     L(\vec{y_1}, \vec{y_2}, \vec{y_3}) &=&
         \max\left(0,\, d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})
         \right)
+    \label{eqn:cnn:mtrc:loss}
 \end{eqnarray}
 其中$\delta$可以控制类间变化的程度。
 % f}}}
@@ -353,7 +362,7 @@ $\vec{R}(\theta)$
 
 % f}}}
 
-\section{小结与讨论}
+\section{小结与讨论\label{sec:cnn:discuss}}
 % f{{{
 在本章中，我们基于需要在模型中人为引入不变性同时确保区分力的总体目标，
 为非监督学习设计了损失函数，并利用深度卷积神经网络来进行损失函数的优化。

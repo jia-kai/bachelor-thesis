@@ -1,14 +1,15 @@
 % $File: expr.tex
-% $Date: Sun Jun 07 23:50:02 2015 +0800
+% $Date: Mon Jun 08 23:58:28 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{评测方法与实验结果}
-本章首先提出一种评测方法，其完全基于肝脏分割标注，
+本章首先提出一种评测方法，其完全基于对某器官的分割标注，
 无需基于其它的柔性匹配算法，也无需显式计算两个标注间的点对应关系，
-可以直接评价特征的优劣，简便高效。随后本章介绍具体实验配置，
+可以直接评价特征的优劣，简便高效。随后本章介绍实验所用数据集，
 并报告基于该评测方法的实验结果。
 
 \section{评测方法}
+% f{{{
 在实际应用中，往往难以有单一可靠的方法直接评判特征优劣，
 而是需要有一个依赖某特征的具体任务，
 并通过该特征在该任务上的表现来间接反应特征优劣。
@@ -94,23 +95,6 @@ $d_{\vec{M_1}}(\vec{p})$、$d_{\vec{M_2}}(\vec{q})$。
 匹配精确度定义为这些剩下的点中成功匹配的点数占剩下的点总数的比例。
 在本文的实验中，均取$T=3000, k=2$。
 
-\figref{expr:match}中给出了在此评测标准下，
-达到$63.5\%$准确率的实际匹配点的分布，可以看出总体来说还是符合预期的。
-
-\begin{figure}[h!]
-    {
-        \addplot{res/expr-match.png}
-        \caption{$63.5\%$准确率下实际匹配点的分布}
-        \label{fig:expr:match}
-    }
-    \footnotesize
-    该图通过在x轴上按4像素为步长切片绘制。
-    其中彩色标注的区域是人工标注的肝脏区域，绿色点为成功匹配点，
-    蓝色点为失败匹配点，蓝色、绿色颜色越亮，则表示匹配的特征距离越小。
-    为方便查看，每个点用原始点为中心的$5\times 5 \times 5$立方体来表示，
-    因此在某些切片上的一些成功匹配点看起来离参考曲面很远，
-    其实是来自曲率变化剧烈的区域的其它(未在此绘制的)切片。
-\end{figure}
 
 \subsection{ROC曲线及曲线下面积}
 基于\secref{expr:match}中针对单个测试图像的曲面匹配方法，
@@ -132,20 +116,184 @@ $t^{(\theta)}$为$t_1^{(\theta)},\cdots,t_M^{(\theta)}$的均值，
 将所有$(t^{(\theta)}, a^{(\theta)})$对应的平面点连接起来，
 就得到了ROC曲线，
 同时可以作出$a^{(\theta)} \pm s^{(\theta)}$的对应区域来反应评测的准确度。
+在本文的ROC曲线中，我们把$a^{(\theta)}$称为精确度(precision)，
+$t^{(\theta)}$称为顶峰比(top ratio)。
+\figref{expr:curve:ISA}给出了一条这样的ROC曲线，
+其中每个线条后的半透明背景反映了$s^{(\theta)}$的大小。
+比较两条曲线时，精确度越高、精确度的方差越小、
+顶峰比越高，则对应的特征的性能越好。
+
+\figref{expr:match}展示了在阈值限制下匹配点分布的变化。
+可以发现，当限制阈值后，输出的都是该模型比较确信的点，
+这些点更靠近如肝肺交界处等有强边缘特征的区域，
+匹配精确度能有较大提高。
+
+\begin{figure}[H]
+    {
+        \addplot{res/expr/match/48.2.png}
+        \addplot{res/expr/match/80.1.png}
+        \caption{限制阈值导致匹配点分布的变化}
+        \label{fig:expr:match}
+    }
+    \footnotesize
+    这两张图均通过在x轴上按4像素为步长切片绘制。
+    其中彩色标注的区域是人工标注的肝脏区域，绿色点为成功匹配点，
+    蓝色点为失败匹配点，蓝色、绿色颜色越亮，则表示匹配的特征距离越小。
+    为方便查看，每个点用原始点为中心的$5\times 5 \times 5$立方体来表示，
+    因此在某些切片上的一些成功匹配点看起来离参考曲面很远，
+    其实是来自曲率变化剧烈的区域的其它(未在此绘制的)切片。
+
+    上图绘制了所有匹配点，顶峰比为$0.568$，匹配精确度为$48.2\%$；
+    下图限制了阈值，顶峰比为$0.078$，匹配精确度为$80.1\%$。
+\end{figure}
+
+为了对两个特征的性能进行比较，我们用曲线下面积(Area Under Curve, AUC)
+来代表一条曲线对应的特征的整体性能。AUC值越大，则特征性能越好。
+为了防止顶峰比较低时仅考虑集中于强边缘区域的匹配点而影响对整体性能评价，
+计算AUC时我们仅考虑顶峰比在区间$[0.05, 1]$范围内的曲线。
+% f}}}
+
+\section{实验数据集}
+% f{{{
+本文的实验均采用SLIVER07\cite{heimann2009comparison}
+所提供的腹腔CT扫描数据及肝脏标注。
+SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
+由于数据损坏等原因我们仅成功解压出其中的18个数据，
+并随机选取其中12个作为训练数据，6个作为测试数据。
+先对这18个数据按如下步骤预处理：
+\begin{enumerate}
+    \item 按数据中给出的CT扫描时各轴的空间间隔构造不等比拉伸的仿射变换矩阵，
+        对图像进行仿射变化，使得各个方向上每个像素对应的空间尺度相同；
+    \item 将图像缩小至$0.8$倍；
+    \item 计算肝脏分割标注的包围盒(即最小的可完全包含每个标注点的立方体)，
+        将包围盒向外扩大$1.2$倍，必要时继续扩大以保证包围盒边界到标注点的最近距
+        离不少于11个像素，裁剪出该范围内的图像作为预处理过的图像
+\end{enumerate}
+其中后两步的目的主要是减小图像尺寸，以加速训练和测试。
+
+训练数据均随机采自预处理过的图像。随机采样时，确保以下两点以保证采样质量：
+\begin{enumerate}
+    \item 新采样的图像块和当前图像上已采样的图像块的重合部分的体积不超过$0.5$
+    \item 采得的图像块要有一定的平均亮度，且灰度值变化范围要超过一定阈值
+\end{enumerate}
+% f}}}
+
+\section{实验结果与讨论}
+在本节中，我们将展示并讨论具体的实验结果。为了进行特征匹配，
+需要明确特征距离的度量方法，在本文中我们仅测试了两种度量方法。
+
+曲线名称以-cos结尾的表示使用余弦距离：
+\begin{eqnarray}
+    d_{\cos}(\vec{x}, \vec{y}) &=& 1 -
+        \frac{\trans{\vec{x}}\vec{y}}{\abs{\vec{x}}\abs{\vec{y}}}
+\end{eqnarray}
+
+曲线名称以-$L_2$结尾的表示使用欧式距离：
+\begin{eqnarray}
+    d_{L_2}(\vec{x}, \vec{y}) &=&
+        \trans{(\vec{x}-\vec{y})}(\vec{x}-\vec{y}) \nonumber \\
+        &=& \trans{\vec{x}}\vec{x} + \trans{\vec{y}}\vec{y} -
+        2\trans{\vec{x}}\vec{y}
+\end{eqnarray}
+
+需要指出的是，基于余弦距离定义的全序关系
+等价于把向量投影到单位超球面后再按欧氏距离定义全序关系。
+
+\subsection{基于层叠卷积ISA的特征提取\label{sec:expr:isa}}
+对于层叠卷积ISA方法，我们从每个被试的扫描影响上随机取$50000$个图像块，
+并按照\chapref{ISA}中介绍的方法进行训练。
+最终在测试集上的ROC曲线如\figref{expr:curve:ISA}所示。
+可以发现，使用余弦距离测度的情况下，在较低顶峰比时的精确度显著提高，
+说明在余弦距离下特征的测度更有意义，可以根据距离的值来反应对匹配精确度的信心。
+所以，如果要使用层叠卷积ISA的特征进行大规模图像块的匹配，
+应该先把特征归一化到单位长度再建立空间索引数据结构。
+
+\begin{figure}[H]
+    \addplot{res/expr/isa.pdf}
+    \caption{ISA的ROC曲线}
+    \label{fig:expr:curve:ISA}
+\end{figure}
+
+\subsection{基于多分类进行特征学习的深度卷积神经网络\label{sec:expr:clsfy}}
+对于\secref{cnn:loss:clsfy}中介绍的基于多分类监督信号来进行间接特征学习的方法，
+我们尝试了不同的训练数据量，均使用带Nesterov momentum的SGD算法
+\cite{sutskever2013importance}进行训练，momentum设置为0.95。
+训练过程中如果发现损失函数的值在最近$5$轮中有$2$次增长，
+则将学习速率减少到原来的$0.92$倍；学习速率减少到$10^{-8}$时停止训练。
+在本小节中，我们将比较不同的参数选择对基于多分类训练的网络所提取特征性能的影响。
+关于曲线命名的具体法则，见\secref{expr:allresults}。
+
+\subsubsection{距离度量}
+我们测试了用余弦距离和欧式距离度量特征相似度，
+结果如\figref{expr:curve:clsfy:measure}所示，
+可以看出采用欧式距离时精确度更好。
+
+\begin{figure}[H]
+    \addtwocolplot{res/expr/clsfy/measure/0.pdf}{res/expr/clsfy/measure/1.pdf}
+    \addtwocolplot{res/expr/clsfy/measure/2.pdf}{res/expr/clsfy/measure/3.pdf}
+    \caption{比较不同距离度量下多分类学习的深度卷积神经网络的特征性能}
+    \label{fig:expr:curve:clsfy:measure}
+\end{figure}
+
+\subsubsection{训练数据量}
+\secref{cnn:discuss}中已经提到，
+这种基于多分类的训练方法要求训练数据中没有来自不同被试的、
+对应于同一解剖学位置的图像块，否则可能会使得模型过度关注个体特征导致性能下降。
+我们实验了在各被试上分别采集$200$、$400$、$800$、$2000$、$5000$
+个图像块作为训练数据，其各自性能如\figref{expr:curve:clsfy:datasize}所示。
+\begin{figure}[H]
+    \addplot{res/expr/clsfy/datasize.pdf}
+    \caption{比较不同训练数据量对多分类学习的深度卷积神经网络的特征性能影响}
+    \label{fig:expr:curve:clsfy:datasize}
+\end{figure}
+
+可以看出，在每个被试的扫描数据中采集$400$个图像块时性能最好，
+过多或过少均会导致性能下降，当数量过多时性能下降还特别严重。
+
+\subsubsection{结合PCA进一步提升性能}
+在实验中我们还发现，去掉最后一层全连接，即\tabref{cnn:arch}中的第6层之后，
+用一个从$60$维降维到$50$维的PCA代替该全连接层，可以进一步提升网络的性能。
+与\secref{expr:isa}的结论类似，使用PCA特征时，用余弦距离效果更好。
 
 
-\section{实验配置}
+\subsection{基于度量学习进行特征学习的深度卷积神经网络}
+我们采用了Adam\cite{kingma2014adam}来优化\secref{cnn:loss:mtrc}中定义的网络，
+因为实验中我们发现其优化效果比SGD更好。与\secref{expr:clsfy}类似，
+当学习速率自动下降到一定程度后停止训练。
+在本小节中，我们将比较不同的参数选择对基于度量学习的网络所提取特征性能的影响。
+关于曲线命名的具体法则，见\secref{expr:allresults}。
 
-\subsection{实验环境}
+\subsubsection{距离度量}
+由于训练时就直接使用了余弦距离，在测试时，
+余弦距离的性能也应该比欧氏距离更好。
+如\figref{expr:curve:mtrc:measure}所示，使用余弦距离时精确度的方差更小，
+精确度普遍更高，而且最终顶峰比也更高。
 
-\subsection{训练数据}
+\begin{figure}[H]
+    \addtwocolplot{res/expr/mtrc/measure/0-0.pdf}{res/expr/mtrc/measure/0-1.pdf}
+    \addtwocolplot{res/expr/mtrc/measure/1-0.pdf}{res/expr/mtrc/measure/1-1.pdf}
+    \addtwocolplot{res/expr/mtrc/measure/2-0.pdf}{res/expr/mtrc/measure/2-1.pdf}
+    \caption{比较不同距离度量下度量学习的深度卷积神经网络的特征性能}
+    \label{fig:expr:curve:mtrc:measure}
+\end{figure}
 
-\subsection{模型参数设定}
+\subsubsection{损失函数中的$\delta$}
+\eqnref{cnn:mtrc:loss}中用到了一个超参数$\delta$来控制对不同类的特征应有的距离。
+我们实验了$\delta=0.5$和$\delta=0.65$两种设定，
+发现虽然较大的$\delta$可以在训练集上让类内距离减小而类间距离增加，
+但在测试集上却让性能有所下降。因此，控制$\delta$的值，
+可以在一定程度上减轻过拟合。具体ROC曲线如\figref{expr:curve:mtrc:delta}所示，
+其中带-mg的曲线表示使用了$\delta=0.65$。
+
+\begin{figure}[H]
+    \addtwocolplot{res/expr/mtrc/delta/0.pdf}{res/expr/mtrc/delta/1.pdf}
+    \addplottcs{res/expr/mtrc/delta/2.pdf}
+    \caption{$\delta$对度量学习的深度卷积神经网络的性能影响}
+    \label{fig:expr:curve:mtrc:delta}
+\end{figure}
 
 
-\section{实验结果}
-曲线，表格
-
+\subsection{结果汇总\label{sec:expr:allresults}}
 
 % vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
 
