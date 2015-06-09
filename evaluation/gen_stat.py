@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: gen_stat.py
-# $Date: Tue Jun 09 15:08:27 2015 +0800
+# $Date: Tue Jun 09 16:16:36 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from get_auc import get_auc, MIN_X
@@ -17,7 +17,7 @@ STAT_ENTRY_KEYS = ['auc', 'mauc', 'max_top_ratio', 'min_precision',
                    'max_precision']
 StatEntry = namedtuple('StatEntry', ['name'] + STAT_ENTRY_KEYS)
 
-def reformat_col(data, name, use_max=False, top=3, fmt='${:.3f}$'.format):
+def reformat_col(data, name, use_max=False, top=3, fmt='{:.3f}'.format):
     col_data = []
 
     for idx, i in enumerate(data):
@@ -30,9 +30,10 @@ def reformat_col(data, name, use_max=False, top=3, fmt='${:.3f}$'.format):
 
     for rank, (_, entry, orig_idx) in enumerate(col_data):
         v = fmt(getattr(entry, name))
-        v = '{} ({})'.format(v, rank + 1)
         if rank < top:
-            v = r'{{\bf {}}}'.format(v)
+            v = r'$\boldsymbol{{{}}}$ {{\bf ({})}}'.format(v, rank + 1)
+        else:
+            v = r'{} ({})'.format(v, rank + 1)
         data[orig_idx] = entry._replace(**{name: v})
 
 
