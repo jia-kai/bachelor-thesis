@@ -1,5 +1,5 @@
 % $File: CNN.tex
-% $Date: Mon Jun 08 23:55:57 2015 +0800
+% $Date: Tue Jun 09 16:07:26 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于深度卷积神经网络的特征提取}
@@ -167,13 +167,13 @@ Softmax的定义如下：对于输入$\vec{x}$和输出$\vec{y}$，满足
 在训练时，我们需要表中第7层以提供损失函数；在使用时，
 则去掉第7层，把第6层的输出直接作为特征使用。
 
-\begin{table}[h!]
+\begin{table}[H]
     \begin{center}
         \caption{本文所用的深度卷积神经网络结构}
         \label{tab:cnn:arch}
         \begin{tabular}{c|c|c}
-            \hline
-            {\heiti 层编号} & {\heiti 输入大小} & {\heiti 层内容} \\ \hline
+            \tabtop
+            {\heiti 层编号} & {\heiti 输入大小} & {\heiti 层内容} \\ \tabmid
             0 & $1\times 21 \times 21  \times 21$ & 线性变换：$y=kx+b$ \\
             1 & $1\times 21 \times 21  \times 21$ & $Conv(20, 4)$ \\
             2 & $20\times 18 \times 18  \times 18$ & $MeanPooling(2)$ \\
@@ -182,6 +182,7 @@ Softmax的定义如下：对于输入$\vec{x}$和输出$\vec{y}$，满足
             5 & $28\times 3 \times 3 \times 3$ & $FC(60)$ \\
             6 & $60$ & $FC(50)$ \\
             7 & $50$ & 损失函数 \\
+            \tabbottom
         \end{tabular}
     \end{center}
     \footnotesize
@@ -275,7 +276,7 @@ Gamma校正是用一个指数函数对输入灰度图像上各点的亮度值进
 其中常数$L, U$表示图像灰度值动态范围的下界和上界。$\gamma=1$时对应原图，
 $\gamma < 1$时亮度提高，$\gamma > 1$时亮度降低，如\figref{cnn:aug:gamma}所示。
 
-\begin{figure}[h!]
+\begin{figure}[H]
     \addplot{res/gamma.png}
     \caption{Gamma校正的效果}
     \label{fig:cnn:aug:gamma}
@@ -354,10 +355,16 @@ $\vec{R}(\theta)$
 在\figref{cnn:aug:affine}中，
 我们对按上述方法采样出的仿射变换的作用效果进行一个直观的展示。
 
-\begin{figure}[h!]
-    \addplot{res/placeholder.png}
-    \caption{随机采样的仿射变换的作用效果}
-    \label{fig:cnn:aug:affine}
+\begin{figure}[H]
+    {
+        \addplot{res/affine-eg.png}
+        \caption{随机采样的仿射变换的作用效果}
+        \label{fig:cnn:aug:affine}
+    }
+    \footnotesize
+    第一个为原图，其余是通过生成旋转角度不超过$30\degree$、
+    拉伸范围在$[0.9, 1.1]$的随机仿射变化并作用在原始图像上所得到的。
+    这里显示的图像仅为实际3D图像沿某轴中点的切片。
 \end{figure}
 
 % f}}}

@@ -1,5 +1,5 @@
 % $File: main.tex
-% $Date: Mon Jun 08 23:54:15 2015 +0800
+% $Date: Tue Jun 09 15:39:47 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \PassOptionsToPackage{bookmarksdepth=3}{hyperref}
@@ -16,10 +16,15 @@
 \usepackage{thutils}
 \usepackage{pdfpages}
 \usepackage{paralist}
+\usepackage{enumitem}
+\usepackage{gensymb}
 \input{mathdef}
 
 % custom commands
 
+\setlist[description]{leftmargin=\parindent,labelindent=\parindent}
+\setlist[enumerate]{leftmargin=\parindent,labelindent=\parindent}
+\setlist[itemize]{leftmargin=\parindent,labelindent=\parindent}
 \setcounter{tocdepth}{2}
 
 
@@ -31,8 +36,15 @@
 \newcommand{\chapref}[1]{\hyperref[chap:#1]{第\ref*{chap:#1}章}}
 \newcommand{\eqnref}[1]{\hyperref[eqn:#1]{(\ref*{eqn:#1})}}
 
+% table lines
+\newcommand{\tabtop}{\toprule[1.5pt]}
+\newcommand{\tabmid}{\midrule[1pt]}
+\newcommand{\tabbottom}{\bottomrule[1.5pt]}
+
+
+% add plot
 \newcommand{\addplot}[1]{\centering
-    \includegraphics[width=0.9\textwidth,
+    \includegraphics[width=0.85\textwidth,
     height=0.4\paperheight,keepaspectratio]{#1}}
 
 \newcommand{\addtwocolplot}[2]{\centering

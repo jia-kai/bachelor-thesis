@@ -1,5 +1,5 @@
 % $File: expr.tex
-% $Date: Mon Jun 08 23:58:28 2015 +0800
+% $Date: Tue Jun 09 16:09:09 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{评测方法与实验结果}
@@ -96,7 +96,7 @@ $d_{\vec{M_1}}(\vec{p})$、$d_{\vec{M_2}}(\vec{q})$。
 在本文的实验中，均取$T=3000, k=2$。
 
 
-\subsection{ROC曲线及曲线下面积}
+\subsection{ROC曲线}
 基于\secref{expr:match}中针对单个测试图像的曲面匹配方法，
 在本小节中我们给出其ROC曲线绘制的方法，以及多个测试图像的整体评分方法。
 
@@ -118,20 +118,18 @@ $t^{(\theta)}$为$t_1^{(\theta)},\cdots,t_M^{(\theta)}$的均值，
 同时可以作出$a^{(\theta)} \pm s^{(\theta)}$的对应区域来反应评测的准确度。
 在本文的ROC曲线中，我们把$a^{(\theta)}$称为精确度(precision)，
 $t^{(\theta)}$称为顶峰比(top ratio)。
-\figref{expr:curve:ISA}给出了一条这样的ROC曲线，
-其中每个线条后的半透明背景反映了$s^{(\theta)}$的大小。
-比较两条曲线时，精确度越高、精确度的方差越小、
-顶峰比越高，则对应的特征的性能越好。
 
 \figref{expr:match}展示了在阈值限制下匹配点分布的变化。
 可以发现，当限制阈值后，输出的都是该模型比较确信的点，
 这些点更靠近如肝肺交界处等有强边缘特征的区域，
 匹配精确度能有较大提高。
+为了防止顶峰比较低时仅考虑集中于强边缘区域的匹配点而影响对整体性能评价，
+我们仅考虑顶峰比在区间$[0.05, 1]$范围内的曲线。
 
 \begin{figure}[H]
     {
-        \addplot{res/expr/match/48.2.png}
-        \addplot{res/expr/match/80.1.png}
+        \addplot{res/expr-match/48.2.png}
+        \addplot{res/expr-match/80.1.png}
         \caption{限制阈值导致匹配点分布的变化}
         \label{fig:expr:match}
     }
@@ -147,10 +145,16 @@ $t^{(\theta)}$称为顶峰比(top ratio)。
     下图限制了阈值，顶峰比为$0.078$，匹配精确度为$80.1\%$。
 \end{figure}
 
-为了对两个特征的性能进行比较，我们用曲线下面积(Area Under Curve, AUC)
-来代表一条曲线对应的特征的整体性能。AUC值越大，则特征性能越好。
-为了防止顶峰比较低时仅考虑集中于强边缘区域的匹配点而影响对整体性能评价，
-计算AUC时我们仅考虑顶峰比在区间$[0.05, 1]$范围内的曲线。
+\figref{expr:curve:ISA}给出了一条这样的ROC曲线，
+其中每个线条后的半透明背景反映了$s^{(\theta)}$的大小。
+比较两条曲线时，精确度越高、精确度的方差越小、
+顶峰比越高，则对应的特征的性能越好。
+为了比较两条曲线，我们可以用AUC(Area Under Curve, 曲线下面积)
+及平均精确度两个指标。
+AUC定义为曲线的精确度对顶峰比的定积分值，
+平均精确度为AUC除以顶峰比的最大、最小值之差。
+在本文的ROC曲线中，各曲线名称后的括号里注明的数字是平均精确度。
+
 % f}}}
 
 \section{实验数据集}
@@ -176,6 +180,11 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
     \item 新采样的图像块和当前图像上已采样的图像块的重合部分的体积不超过$0.5$
     \item 采得的图像块要有一定的平均亮度，且灰度值变化范围要超过一定阈值
 \end{enumerate}
+
+在训练深度卷积神经网络时，Gamma变化的范围是$[0.7, 1.4]$，
+仿射变换的最大平移量为$1.2$像素，最大旋转角度为$35\degree$，
+拉伸范围是$[0.8, 1.2]$。
+
 % f}}}
 
 \section{实验结果与讨论}
@@ -203,6 +212,7 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
 对于层叠卷积ISA方法，我们从每个被试的扫描影响上随机取$50000$个图像块，
 并按照\chapref{ISA}中介绍的方法进行训练。
 最终在测试集上的ROC曲线如\figref{expr:curve:ISA}所示。
+
 可以发现，使用余弦距离测度的情况下，在较低顶峰比时的精确度显著提高，
 说明在余弦距离下特征的测度更有意义，可以根据距离的值来反应对匹配精确度的信心。
 所以，如果要使用层叠卷积ISA的特征进行大规模图像块的匹配，
@@ -231,7 +241,7 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
 \begin{figure}[H]
     \addtwocolplot{res/expr/clsfy/measure/0.pdf}{res/expr/clsfy/measure/1.pdf}
     \addtwocolplot{res/expr/clsfy/measure/2.pdf}{res/expr/clsfy/measure/3.pdf}
-    \caption{比较不同距离度量下多分类学习的深度卷积神经网络的特征性能}
+    \caption{不同距离度量下多分类学习的深度卷积神经网络的特征性能}
     \label{fig:expr:curve:clsfy:measure}
 \end{figure}
 
@@ -243,17 +253,27 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
 个图像块作为训练数据，其各自性能如\figref{expr:curve:clsfy:datasize}所示。
 \begin{figure}[H]
     \addplot{res/expr/clsfy/datasize.pdf}
-    \caption{比较不同训练数据量对多分类学习的深度卷积神经网络的特征性能影响}
+    \caption{不同训练数据量对多分类学习的深度卷积神经网络的特征性能影响}
     \label{fig:expr:curve:clsfy:datasize}
 \end{figure}
 
 可以看出，在每个被试的扫描数据中采集$400$个图像块时性能最好，
 过多或过少均会导致性能下降，当数量过多时性能下降还特别严重。
 
-\subsubsection{结合PCA进一步提升性能}
+\subsubsection{结合PCA进一步提升性能\label{sec:expr:clsfy:pca}}
 在实验中我们还发现，去掉最后一层全连接，即\tabref{cnn:arch}中的第6层之后，
 用一个从$60$维降维到$50$维的PCA代替该全连接层，可以进一步提升网络的性能。
-与\secref{expr:isa}的结论类似，使用PCA特征时，用余弦距离效果更好。
+求解该PCA层的权重时所用的数据来自每个被试上随机采集$10000$个图像块得到的数据。
+与\secref{expr:isa}中的发现类似，使用PCA特征时，用余弦距离效果更好。
+具体ROC曲线如\figref{expr:curve:clsfy:pca}所示。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{res/expr/clsfy/pca/0.pdf}
+    \includegraphics[width=0.6\textwidth]{res/expr/clsfy/pca/1.pdf}
+    \caption{结合PCA提升多分类训练的深度卷积神经网络的特征性能}
+    \label{fig:expr:curve:clsfy:pca}
+\end{figure}
 
 
 \subsection{基于度量学习进行特征学习的深度卷积神经网络}
@@ -273,7 +293,7 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
     \addtwocolplot{res/expr/mtrc/measure/0-0.pdf}{res/expr/mtrc/measure/0-1.pdf}
     \addtwocolplot{res/expr/mtrc/measure/1-0.pdf}{res/expr/mtrc/measure/1-1.pdf}
     \addtwocolplot{res/expr/mtrc/measure/2-0.pdf}{res/expr/mtrc/measure/2-1.pdf}
-    \caption{比较不同距离度量下度量学习的深度卷积神经网络的特征性能}
+    \caption{不同距离度量下度量学习的深度卷积神经网络的特征性能}
     \label{fig:expr:curve:mtrc:measure}
 \end{figure}
 
@@ -292,8 +312,85 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
     \label{fig:expr:curve:mtrc:delta}
 \end{figure}
 
+\subsubsection{训练数据量}
+我们也测试了不同训练数据量对最终性能的影响，发现数据量达到一定程度后，
+并不会对最终性能产生太大影响，这也与预期相符。
+ROC曲线见\figref{expr:curve:mtrc:datasize}。
+\begin{figure}[H]
+    \addtwocolplot{res/expr/mtrc/datasize/0.pdf}{res/expr/mtrc/datasize/1.pdf}
+    \caption{训练数据量对度量学习的深度卷积神经网络的性能影响}
+    \label{fig:expr:curve:mtrc:datasize}
+\end{figure}
+
+\subsubsection{结合PCA进一步提升性能}
+与\secref{expr:clsfy:pca}中讨论的方法类似，
+我们可以用PCA替代最后一层全连接来提升特征的性能。
+然而我们发现，对某些网络，倒数第二层的一些神经元由于偏置量太大而始终没被激活，
+导致PCA时很多特征值几乎为$0$，无法实现$50$维的PCA输出。
+我们限制了PCA时最小特征值不小于0.1，并依次决定最终PCA的输出维度。
+ROC曲线见\figref{expr:curve:mtrc:pca}。
+\begin{figure}[H]
+    \addtwocolplot{res/expr/mtrc/pca/0.pdf}{res/expr/mtrc/pca/1.pdf}
+    \addplottcs{res/expr/mtrc/pca/2.pdf}
+    \caption{结合PCA提升度量学习的深度卷积神经网络的特征性能}
+    \label{fig:expr:curve:mtrc:pca}
+\end{figure}
+
 
 \subsection{结果汇总\label{sec:expr:allresults}}
+在本小结中，我们将汇总所有结果，以备参考。
+
+首先介绍结果命名规则。所有结果按照``方法名-[参数0-][参数1-]...距离度量''
+的形式命名。距离度量包括cos和$L_2$，分别代表余弦距离和欧氏距离。
+方法名包括ISA、clsfy、mtrc，分别代表层叠卷积ISA、
+多分类训练的深度卷积神经网络和度量学习训练的深度卷积神经网络。
+对于后两种方法，还有如下额外参数：
+\begin{description}
+    \item[d$N$] 表示训练数据量为从每个被试上随机采样$N$个图像块
+    \item[mg] 表示基于度量学习的方法使用了$\delta=0.65$
+    \item[pca] 表示使用了PCA代替最后一层全连接
+    \item[o$N$] 表示最终特征维度不是$50$维，而是$N$维
+\end{description}
+
+我们将各类方法中，结果最好的ROC曲线共同绘制在\figref{expr:curve:all}里，
+以便比较。为了便于观察，该图中没有绘制方差范围。
+
+\begin{figure}[H]
+    \addplot{res/expr/all.pdf}
+    \caption{ROC曲线汇总}
+    \label{fig:expr:curve:all}
+\end{figure}
+
+另外，我们将所有实验结果的一些统计数据放在\tabref{expr:all}中。
+其中括号内标注的是按该列统计值的排名，前三名加粗标注。
+\begin{longtable}{l|l|l|l|l|l}
+    \caption{全部实验结果}
+    \label{tab:expr:all} \\
+    \tabtop
+    {\heiti 名称} & {\heiti AUC} & {\heiti 平均精确度} & {\heiti 最大顶峰比} &
+        {\heiti 最小精确度} & {\heiti 最大精确度} \\
+    \tabmid
+    \input{res/expr/stat.tex}
+    \tabbottom
+\end{longtable}
+
+
+\section{小结与讨论}
+在本章中，我们先提出了仅依赖于对单个器官的分割标注的特征评测标准，
+并详细报告了我们进行的各种实验在该评测标准上的性能。
+总的来说，可以得到以下几点结论：
+\begin{enumerate}
+    \item 在监督信号中加入对不变性的先验要求的深度卷积神经网络所得到的特征，
+        总体而言比完全非监督的层叠卷积ISA得到的特征性能要好很多
+    \item 不恰当的特征距离度量会导致性能严重恶化；
+        我们仅实验了余弦距离和欧氏距离两种，发现对ISA、PCA及度量学习等方法，
+        用余弦距离效果更好；对多分类学习，用欧氏距离效果更好
+    \item 基于多分类训练的网络对训练数据量有较严格的要求，
+        过多或过少均会导致性能下降
+    \item 对于度量学习的网络，其损失函数中的$\delta$需要设置成合适的值，
+        过大的$\delta$可能导致过拟合
+    \item 使用PCA替代深度卷积神经网络的最后一层全连接，在一定程度上可以提升性能
+\end{enumerate}
 
 % vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
 
