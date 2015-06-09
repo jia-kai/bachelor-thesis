@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 # $File: single3d.py
-# $Date: Tue May 12 16:43:01 2015 +0800
+# $Date: Sun Jun 07 22:40:11 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
-
-import functools
 
 import numpy as np
 import cv2
+
+import functools
+import sys
+import logging
+logger = logging.getLogger(__name__)
 
 class Single3DDataViewer(object):
     data = None
@@ -45,14 +48,18 @@ class Single3DDataViewer(object):
             fshow = functools.partial(self._showimg, win_name=win_name, axis=i)
             pos = self.data.shape[i] / 2
             fshow(pos)
-            cv2.createTrackbar(ax_name, win_name,
-                               pos, self.data.shape[i] - 1, fshow)
+            if self.data.shape[i] > 1:
+                cv2.createTrackbar(ax_name, win_name,
+                                   pos, self.data.shape[i] - 1, fshow)
             cv2.setMouseCallback(
                 win_name,
                 functools.partial(self._on_mouse, axis=i))
 
         while self._waitkey:
             key = chr(cv2.waitKey(-1) & 0xFF)
+            if key == 'x':
+                logger.info('x pressed, exit')
+                sys.exit()
             if key == 'q':
                 return
 

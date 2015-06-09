@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: test_affine_3d.py
-# $Date: Sun May 10 00:09:00 2015 +0800
+# $Date: Tue Jun 09 15:50:03 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.math.op.affine3d import batched_affine3d, RandomAffineMat
@@ -71,11 +71,11 @@ def main():
         out1 = out
         if add_axis:
             out1 = np.squeeze(out, axis=0)
-        serial.dump(out1, args.output)
+        serial.dump(out1, args.output, use_pickle=True)
 
     if args.gen:
         print out
-    elif not args.benchmark:
+    elif not args.benchmark and not args.output:
         view_3d_data_single(out[args.batch])
 
     if args.benchmark:

@@ -1,23 +1,31 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: gen_run.py
-# $Date: Mon Jun 01 12:57:54 2015 +0800
+# $Date: Tue Jun 09 00:07:51 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
+
+import nasmia
 
 import argparse
 import random
 import itertools
+import logging
 import os
+logger = logging.getLogger(__name__)
 
+used_names = set()
 def append_single(output, desc):
-    desc = desc.split('|')
+    desc = [i.strip() for i in desc.split('|')]
     if len(desc) == 2:
         desc.append('cos l2')
     assert len(desc) == 3, desc
 
-    cmd = "'{}'".format(desc[0].strip())
-    name = "'{}'".format(desc[1].strip())
+    cmd = "'{}'".format(desc[0])
+    name = "'{}'".format(desc[1])
     metrics = desc[2].strip().split()
+
+    assert name not in used_names
+    used_names.add(name)
 
     output.append('if [ {} ]'.format(' -o '.join([
         '! -e data/pairwise-match/{}-{}'.format(name, i)
@@ -30,7 +38,13 @@ def append_single(output, desc):
     output.append('rm -f data/feature/{}/*.* || true'.format(name))
 
     for i in metrics:
-        output.append('./step2_get_roc.sh {}-{}'.format(name, i))
+        output.append('[ -f data/roc/{0}-{1}.txt ] || '
+                      './step2_get_roc.sh {0}-{1}'.format(name, i))
+
+    for i in metrics:
+        if not os.path.exists('data/roc/{}-{}.txt'.format(desc[1], i)):
+            return True
+    logger.info('ROC for {} already exists'.format(desc[1:]))
 
 def main():
     parser = argparse.ArgumentParser(
@@ -53,8 +67,10 @@ def main():
 
     oiter = itertools.cycle(output)
 
+    cur_out = next(oiter)
     for line in lines:
-        append_single(next(oiter), line)
+        if append_single(cur_out, line):
+            cur_out = next(oiter)
 
     for idx, val in enumerate(output):
         fpath = 'data/run{}.sh'.format(idx)
