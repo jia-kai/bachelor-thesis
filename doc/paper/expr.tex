@@ -1,8 +1,8 @@
 % $File: expr.tex
-% $Date: Tue Jun 09 16:09:09 2015 +0800
+% $Date: Wed Jun 10 00:42:45 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
-\chapter{评测方法与实验结果}
+\chapter{评测方法与实验\label{chap:expr}}
 本章首先提出一种评测方法，其完全基于对某器官的分割标注，
 无需基于其它的柔性匹配算法，也无需显式计算两个标注间的点对应关系，
 可以直接评价特征的优劣，简便高效。随后本章介绍实验所用数据集，
@@ -40,7 +40,7 @@
 并基于边界距离来判断单点是否匹配成功。
 
 我们假设器官分割掩膜以二值3D图像$\vec{M}$的形式提供，
-$\vec{M}$中某点值为$1$是表示对应点属于目标器官，为$0$时表示不属于目标器官。
+$\vec{M}$中某点值为$1$时表示对应点属于目标器官，为$0$时表示不属于目标器官。
 对于每个点$(i, j, k)$，定义
 \begin{eqnarray}
     N(i, j, k) &=& \prod_{
@@ -188,6 +188,7 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
 % f}}}
 
 \section{实验结果与讨论}
+% f{{{
 在本节中，我们将展示并讨论具体的实验结果。为了进行特征匹配，
 需要明确特征距离的度量方法，在本文中我们仅测试了两种度量方法。
 
@@ -236,11 +237,12 @@ SLIVER07是一次肝脏分割的比赛，提供了20个训练数据，
 \subsubsection{距离度量}
 我们测试了用余弦距离和欧式距离度量特征相似度，
 结果如\figref{expr:curve:clsfy:measure}所示，
-可以看出采用欧式距离时精确度更好。
+可以看出在大部分情况下，采用欧式距离时精确度更好。
 
 \begin{figure}[H]
     \addtwocolplot{res/expr/clsfy/measure/0.pdf}{res/expr/clsfy/measure/1.pdf}
     \addtwocolplot{res/expr/clsfy/measure/2.pdf}{res/expr/clsfy/measure/3.pdf}
+    \addplottcs{res/expr/clsfy/measure/4.pdf}
     \caption{不同距离度量下多分类学习的深度卷积神经网络的特征性能}
     \label{fig:expr:curve:clsfy:measure}
 \end{figure}
@@ -373,6 +375,7 @@ ROC曲线见\figref{expr:curve:mtrc:pca}。
     \input{res/expr/stat.tex}
     \tabbottom
 \end{longtable}
+% f}}}
 
 
 \section{小结与讨论}
@@ -381,14 +384,14 @@ ROC曲线见\figref{expr:curve:mtrc:pca}。
 总的来说，可以得到以下几点结论：
 \begin{enumerate}
     \item 在监督信号中加入对不变性的先验要求的深度卷积神经网络所得到的特征，
-        总体而言比完全非监督的层叠卷积ISA得到的特征性能要好很多
+        总体而言比完全非监督的层叠卷积ISA得到的特征性能要好很多；
     \item 不恰当的特征距离度量会导致性能严重恶化；
         我们仅实验了余弦距离和欧氏距离两种，发现对ISA、PCA及度量学习等方法，
-        用余弦距离效果更好；对多分类学习，用欧氏距离效果更好
+        用余弦距离效果更好；对多分类学习，用欧氏距离效果更好；
     \item 基于多分类训练的网络对训练数据量有较严格的要求，
-        过多或过少均会导致性能下降
+        过多或过少均会导致性能下降；
     \item 对于度量学习的网络，其损失函数中的$\delta$需要设置成合适的值，
-        过大的$\delta$可能导致过拟合
+        过大的$\delta$可能导致过拟合；
     \item 使用PCA替代深度卷积神经网络的最后一层全连接，在一定程度上可以提升性能
 \end{enumerate}
 
