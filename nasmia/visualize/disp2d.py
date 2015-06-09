@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: disp2d.py
-# $Date: Sat May 02 12:06:44 2015 +0800
+# $Date: Mon Jun 08 09:55:18 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import cv2
@@ -30,18 +30,21 @@ def display_patch_list_2d(plist, nr_row=None, nr_col=None, sep=1,
     if on_click is None:
         on_click = lambda idx, patch: logger.info('click on {}'.format(idx))
 
-    assert plist.ndim == 3
+    assert plist.ndim in (3, 4)
+    if plist.ndim == 3:
+        plist = np.expand_dims(plist, axis=1)
     logger.info('display patch, shape={}'.format(plist.shape))
     plist = plist.copy()
     plist_orig = plist.copy()
     idxarr = range(plist.shape[0])
 
-    ph, pw = plist.shape[1:]
+    ph, pw = plist.shape[-2:]
     nr_row = minnone(nr_row, max_height / (ph + sep))
     nr_col = minnone(nr_col, max_width / (pw + sep))
 
     img = np.zeros(
-        (nr_row * (ph + sep) - sep, nr_col * (pw + sep) - sep), dtype='uint8')
+        (plist.shape[1],
+         nr_row * (ph + sep) - sep, nr_col * (pw + sep) - sep), dtype='uint8')
 
     def do_show(plist):
         if not len(plist):
@@ -52,12 +55,13 @@ def display_patch_list_2d(plist, nr_row=None, nr_col=None, sep=1,
         for patch in plist:
             r0 = cur_row * (ph + sep)
             c0 = cur_col * (pw + sep)
-            img[r0:r0+ph, c0:c0+pw] = patch
+            img[:, r0:r0+ph, c0:c0+pw] = patch
             cur_col += 1
             if cur_col == nr_col:
                 cur_col = 0
                 cur_row += 1
-        cv2.imshow(win_title, img)
+        cur_img = np.transpose(img, (1, 2, 0))
+        cv2.imshow(win_title, cur_img)
         cv2.setMouseCallback(win_title, on_mouse)
 
 
@@ -101,10 +105,12 @@ def display_patch_list_2d(plist, nr_row=None, nr_col=None, sep=1,
             if key == 'x':
                 logger.warn('x pressed, exit')
                 sys.exit(5)
+            if key == 'S':
+                logger.info('save image to /tmp/img.png')
+                cv2.imwrite('/tmp/img.png', np.transpose(img, (1, 2, 0)))
 
 def normalize(data):
     """linearly scale to [0, 255]"""
-    assert data.ndim == 3
     #d_tr = data.reshape((data.shape[0], -1))
     #d_max = np.max(d_tr, axis=1).reshape((data.shape[0], 1, 1))
     #d_min = np.min(d_tr, axis=1).reshape((data.shape[0], 1, 1))

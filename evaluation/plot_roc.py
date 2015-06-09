@@ -1,8 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: plot_roc.py
-# $Date: Mon Jun 01 00:50:37 2015 +0800
+# $Date: Tue Jun 09 13:25:00 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
+
+from get_auc import MIN_X, get_auc
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -54,6 +56,8 @@ def read_data(args, fpath):
             if line.startswith('#'):
                 continue
             line = map(float, line.split())
+            if line[0] < MIN_X:
+                continue
             xdata.append(line[0])
             ydata.append(line[1])
             xerr.append(line[3])
@@ -82,15 +86,14 @@ def main():
                         default='precision')
     parser.add_argument('--xlog', action='store_true',
                         help='use log scale for X axis')
-    parser.add_argument('--xmin', default=1e-3, type=float,
-                        help='minimum value for x')
+    parser.add_argument('--no_errbar', action='store_true',
+                        help='do not plot error bar')
     parser.add_argument('-o', '--output', metavar='output', help='output file')
     parser.add_argument('data_fpath', nargs='+')
     args = parser.parse_args()
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_xlim(args.xmin, 1)
     ax.set_xlabel(args.xlabel)
     ax.set_ylabel(args.ylabel)
     #ax.xaxis.set_major_locator(MultipleLocator(0.1))
@@ -104,15 +107,24 @@ def main():
 
     data_fpath = [(i, label_from_filename(i)) for i in args.data_fpath]
 
+    all_data = []
     for fname, label in data_fpath:
         x, y, xerr, yerr = read_data(args, fname)
+        auc = get_auc(x, y, avg=True)
+        label = '{}({:.3f})'.format(label, auc)
+        all_data.append((-auc, x, y, yerr, label))
+
+    all_data.sort()
+
+    for _, x, y, yerr, label in all_data:
         marker = next(markers)
         cur_color = next(colors)
         ax.plot(x, y, marker=marker, label=label, linewidth=2,
                 markevery=0.3, markersize=10,
                 markeredgecolor='none', color=cur_color)
-        ax.fill_between(x, y - yerr, y + yerr, alpha=0.1,
-                        edgecolor='none', facecolor=cur_color)
+        if not args.no_errbar:
+            ax.fill_between(x, y - yerr, y + yerr, alpha=0.2,
+                            edgecolor='none', facecolor=cur_color)
 
 
     leg = plt.legend(loc=args.loc, fancybox=True, numpoints=1)
@@ -120,9 +132,9 @@ def main():
         leg.get_frame().set_alpha(0.5)
 
     if args.output:
-        fig.savefig(args.output)
-
-    plt.show()
+        fig.savefig(args.output, bbox_inches='tight')
+    else:
+        plt.show()
 
 if __name__ == '__main__':
     main()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: get_roc_impl.pyx
-# $Date: Mon Jun 01 22:42:20 2015 +0800
+# $Date: Sun Jun 07 23:00:59 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -15,9 +15,13 @@ logger = logging.getLogger(__name__)
 
 cdef class ROCEvaluate:
     cdef object _args
+    cdef object _output_match_result
 
     def __init__(self, args):
         self._args = args
+        if args.dump_dist:
+            self._output_match_result = PointMatchResult(
+                None, None, None, None, None)
 
     cdef _calc_single_test_image(self, flist, test_img_name):
         args = self._args
@@ -31,6 +35,12 @@ cdef class ROCEvaluate:
 
         match_idx = []
         match_dist = []
+
+        if self._output_match_result:
+            self._output_match_result.idx = []
+            self._output_match_result.dist = []
+            self._output_match_result.geo_dist = []
+            self._output_match_result.img_shape = border_dist_np.shape
 
         for i in flist:
             logger.info('load {}'.format(i))
@@ -65,6 +75,11 @@ cdef class ROCEvaluate:
             is_tp = geo_dist >= min_geo_dist and geo_dist <= max_geo_dist
             raw_data.append((is_tp, match_dist[ptnum]))
 
+            if self._output_match_result:
+                self._output_match_result.idx.append((x, y, z))
+                self._output_match_result.dist.append(match_dist[ptnum])
+                self._output_match_result.geo_dist.append(geo_dist)
+
         return self._calc_roc(np.asarray(raw_data, np.float32), len(match_idx))
 
     cdef _calc_roc(self, np.ndarray[np.float32_t, ndim=2] raw_data,
@@ -82,7 +97,8 @@ cdef class ROCEvaluate:
 
         for idx in range(uniq_dist.size):
             thresh = uniq_dist[idx]
-            while idx_src < raw_data.shape[0] and raw_data[idx_src, 1] <= thresh:
+            while (idx_src < raw_data.shape[0] and
+                   raw_data[idx_src, 1] <= thresh):
                 nr_tp += raw_data[idx_src, 0]
                 idx_src += 1
 
@@ -95,10 +111,21 @@ cdef class ROCEvaluate:
         flist = sorted([(os.path.basename(i).split('.')[0].split('-'), i)
                         for i in self._args.match_result])
 
+        cdef int nr_sub = 0
         all_roc = []
         for key in sorted(set(i[0][1] for i in flist)):
             sub_flist = [i[1] for i in flist if i[0][1] == key]
             all_roc.append(self._calc_single_test_image(sub_flist, key))
+            nr_sub += 1
+
+        logger.info('avg in {} samples'.format(nr_sub))
+        if self._output_match_result:
+            assert nr_sub == 1
+            t = self._output_match_result
+            t.idx = np.array(t.idx)
+            t.dist = np.array(t.dist)
+            t.geo_dist = np.array(t.geo_dist)
+            serial.dump(t, self._args.dump_dist)
 
         return self._merge_roc(all_roc)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: get_roc.py
-# $Date: Mon Jun 01 10:14:07 2015 +0800
+# $Date: Sun Jun 07 22:49:31 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import pyximport
@@ -37,6 +37,7 @@ def main():
     parser.add_argument('match_result', nargs='+',
                         help='point match results of training images '
                         'on this test image')
+    parser.add_argument('--dump_dist', help='dump calculated dist to file')
     args = parser.parse_args()
 
     assert args.output or args.plot,  \

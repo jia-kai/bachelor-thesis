@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: gen_run.py
-# $Date: Wed Jun 03 18:40:59 2015 +0800
+# $Date: Tue Jun 09 00:07:51 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import nasmia
@@ -38,7 +38,8 @@ def append_single(output, desc):
     output.append('rm -f data/feature/{}/*.* || true'.format(name))
 
     for i in metrics:
-        output.append('./step2_get_roc.sh {}-{}'.format(name, i))
+        output.append('[ -f data/roc/{0}-{1}.txt ] || '
+                      './step2_get_roc.sh {0}-{1}'.format(name, i))
 
     for i in metrics:
         if not os.path.exists('data/roc/{}-{}.txt'.format(desc[1], i)):
