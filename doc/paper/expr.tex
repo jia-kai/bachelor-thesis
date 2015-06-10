@@ -1,5 +1,5 @@
 % $File: expr.tex
-% $Date: Thu Jun 11 00:18:15 2015 +0800
+% $Date: Thu Jun 11 00:47:53 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{评测方法与实验\label{chap:expr}}
@@ -60,7 +60,8 @@ $N(i, j, k)$表示了与$(i, j, k)$相邻的点中是否有不属于目标器官
 距离记作$s(\vec{p}, \vec{q})$。
 对每个点$\vec{p}$，可定义无符号边界距离$D(\vec{p})$和边界距离$d(\vec{p})$：
 \begin{eqnarray}
-    D(\vec{p}) &=& \min_{\vec{q} \in \partial M} s(\vec{p}, \vec{q}) \\
+    D(\vec{p}) &=& \min_{\vec{q} \in \partial M} s(\vec{p}, \vec{q})
+        \nonumber \\
     d(\vec{p}) &=& (2M(\vec{p})-1)D(\vec{p})
 \end{eqnarray}
 在涉及多个图像如$\vec{M_1}$、$\vec{M_2}$时，

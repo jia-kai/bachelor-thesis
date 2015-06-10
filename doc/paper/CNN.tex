@@ -1,5 +1,5 @@
 % $File: CNN.tex
-% $Date: Wed Jun 10 18:33:42 2015 +0800
+% $Date: Thu Jun 11 00:55:45 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于深度卷积神经网络的特征提取\label{chap:CNN}}
@@ -13,8 +13,8 @@
 % f{{{
 本小节将介绍我们训练网络的最初动机，以便为后续网络的具体设计打下基础。
 
-\secref{ISA:discuss}中已经提到，非监督的层叠卷积ISA一个严重缺陷就是
-没有考虑我们希望特征具有的不变性的先验知识；因此在本章中，
+\secref{ISA:discuss}中已经提到，非监督的层叠卷积ISA的一个严重缺陷是
+没有考虑我们希望特征具有的不变性的先验知识；在本章中，
 我们希望用深度卷积神经网络来解决这个问题。
 
 对3D图像的特征提取过程可以形式化地表达为$\vec{y}=f(\vec{X};\vec{W})$，
@@ -220,7 +220,7 @@ Softmax的定义如下：对于输入$\vec{x}$和输出$\vec{y}$，满足
 $\augdataset{X_i}$中的所有图像都被分类到第$i$类。
 
 监督信号记作$\bar{\vec{y}}$，用onehot编码，
-即如果$\vec{X}\in \augdataset{X_i}$，则$y_k=[i=k]$。
+即如果$\vec{X}\in \augdataset{X_i}$，则$\bar{y_k}=[i=k]$。
 网络Softmax层输出记作$\vec{y}$，则损失函数为：
 \begin{eqnarray}
     L(\vec{y}, \bar{\vec{y}}) &=& -\log \trans{\vec{y}}\bar{\vec{y}}
@@ -239,7 +239,7 @@ $\augdataset{X_i}$中的所有图像都被分类到第$i$类。
 \vec{X_3}' \in \augdataset{X_2}$，记$\vec{y_i}=f(\vec{X_i}';\vec{W})$。
 
 应该要求$d(\vec{y_1},\vec{y_2})$尽量小，$d(\vec{y_1}, \vec{y_3})$尽量大，
-其中距离测度$d$选择余弦距离。具体如下：
+其中距离测度$d$选择余弦距离。$d$的定义及损失函数$L$的定义具体如下：
 \begin{eqnarray}
     d(\vec{x}, \vec{y}) &=& 1 -
         \frac{\trans{\vec{x}}\vec{y}}{\abs{\vec{x}}\abs{\vec{y}}} \nonumber \\
@@ -261,7 +261,7 @@ Gamma校正有一个标量参数$\gamma$，用以进行亮度变换；
 
 也就是说，$\mathcal{T}$定义为在给定参数范围内所有可能的这两种变换的组合。
 这是一个无限不可数集合，实际应用时我们需要在其中均匀采样。
-为此，需要给定参数$\gamma_l, \gamma_u$表示Gamma变换的参数区间，
+为此，需要给定参数$\gamma_l, \gamma_u$表示Gamma校正的参数区间，
 $s_l, s_u$表示仿射变换的拉伸程度区间，以及$\theta_u$表示仿射变换的最大旋转角。
 在本小节中，我们将对Gamma校正和仿射变换进行具体定义，
 并介绍如何根据上述给定的参数进行均匀采样。
@@ -273,7 +273,7 @@ Gamma校正是用一个指数函数对输入灰度图像上各点的亮度值进
     \vec{y} &=& L + (U-L)\left(\frac{\vec{x}-L}{U-L}\right)^\gamma
 \end{eqnarray}
 
-其中常数$L, U$表示图像灰度值动态范围的下界和上界。$\gamma=1$时对应原图，
+其中常数$L, U$表示图像灰度值动态范围的下界和上界。$\gamma=1$时输出与原图相同，
 $\gamma < 1$时亮度提高，$\gamma > 1$时亮度降低，如\figref{cnn:aug:gamma}所示。
 
 \begin{figure}[H]
@@ -306,7 +306,8 @@ $\gamma < 1$时亮度提高，$\gamma > 1$时亮度降低，如\figref{cnn:aug:g
 为了能均匀地对三维仿射变换进行采样，在此我们先讨论对其进行分解的方法。
 对于变换矩阵$\vec{A} = (\vec{A_0}\quad\vec{b})$，
 其中$\vec{A_0}$是$3\times 3$矩阵表示对坐标系的扭曲，
-$\vec{b}$是3维向量表示坐标的偏移量，并且有$\vec{q}=\vec{A_0}\vec{p}+\vec{b}$。
+$\vec{b}$是3维向量表示坐标的偏移量，
+显然变换前后的坐标$\vec{p}$、$\vec{q}$满足$\vec{q}=\vec{A_0}\vec{p}+\vec{b}$。
 对$\vec{A_0}$进行SVD分解：
 \begin{eqnarray}
     \vec{A_0} = \vec{U}\vec{\Sigma}\trans{\vec{V}}
@@ -319,7 +320,7 @@ $\vec{b}$是3维向量表示坐标的偏移量，并且有$\vec{q}=\vec{A_0}\vec
     \label{eqn:cnn:affine:a0}
 \end{eqnarray}
 
-于是对任意仿射变换$\vec{A}$，其作用可理解三个操作依次进行：
+于是对任意仿射变换$\vec{A}$，其作用可理解为以下三个操作依次进行：
 \begin{enumerate}
     \item 用$\vec{R}$对点进行旋转
     \item 按照$\trans{\vec{U}}$定义的三个方向独立拉伸，
@@ -331,9 +332,9 @@ $\vec{b}$是3维向量表示坐标的偏移量，并且有$\vec{q}=\vec{A_0}\vec
 进行采样了。
 对偏移量$\vec{b}$的采样很简单，在此略去；我们主要讨论矩阵$\vec{A_0}$的采样方法。
 给定参数$s_l, s_u$表示拉伸程度，$\theta_u$表示最大旋转角度。
-记$U(a, b)$表示$[a, b]$间的均匀分布，
+记$U(a, b)$为$[a, b]$间的均匀分布，
 $\vec{R}(\theta)$
-表示按旋转角度均匀分布且最大旋转角度为$\theta$的随机旋转矩阵的分别。
+表示按旋转角度均匀分布且最大旋转角度为$\theta$的随机旋转矩阵。
 则可按如下方法生成旋转和拉伸都均匀分布的随机矩阵$\vec{A_0}$：
 \begin{eqnarray}
     s_0 &\sim& U(s_l, s_u) \nonumber \\
