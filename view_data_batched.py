@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: view_data_batched.py
-# $Date: Tue Jun 09 15:49:03 2015 +0800
+# $Date: Wed Jun 10 23:28:31 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -27,6 +27,10 @@ def main():
                         help='max display window width')
     parser.add_argument('--max_win_height', type=int, default=600,
                         help='max display window height')
+    parser.add_argument('--individual_normalize', action='store_true',
+                        help='normalize each patch individually')
+    parser.add_argument('--no_normalize', action='store_true',
+                        help='do not normalize data')
     parser.add_argument('img_fpath', nargs='+',
                         help='path to image; if multiple paths are given, they'
                         ' would be merged')
@@ -61,8 +65,9 @@ def main():
         else:
             assert data.ndim == 3
             data = np.expand_dims(data, axis=1)
-    view_3d_data_batched(data, max_width=args.max_win_width,
-                         max_height=args.max_win_height)
+    view_3d_data_batched(
+        data, args.individual_normalize, args.no_normalize,
+        max_width=args.max_win_width, max_height=args.max_win_height)
 
 if __name__ == '__main__':
     main()

@@ -1,12 +1,12 @@
 #!/bin/bash -e
 # $File: clsfy_measure.sh
-# $Date: Mon Jun 08 22:48:16 2015 +0800
+# $Date: Wed Jun 10 00:26:01 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 mkdir -pv data/clsfy/measure
 
 cnt=0
-for i in 200 400 800 2000
+for i in 200 400 800 2000 5000
 do
     ../plot_roc.py -o data/clsfy/measure/${cnt}.pdf \
         ../data/roc/clsfy-d${i}-{cos,l2}.txt
