@@ -1,5 +1,5 @@
 % $File: ISA.tex
-% $Date: Mon Jun 08 22:59:35 2015 +0800
+% $Date: Tue Jun 09 16:07:31 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于层叠卷积ISA的特征提取\label{chap:ISA}}
@@ -154,15 +154,8 @@ $\vec{x}$对应于一个$p\times p \times p$的图像块时，
 $\vec{A}$可对应看作一个$m\times 1 \times p \times p \times p$的卷积核，
 而其后的子空间的能量响应则可以看作是在多通道3D图像上进行的跨通道的非线性操作，
 从而单层ISA可以看作由卷积以及非线性操作组成的卷积神经网络，
-如\figref{isa:nn}所示。
 在这种框架下，单层的ISA可以被用于任意大小的输入图像上，
 在图像上的每个点密集提取特征；在GPU的辅助下可以达到很高的速度。
-
-\begin{figure}[h!]
-    \addplot{res/placeholder.png}
-    \caption{单层ISA对应的卷积神经网络结构}
-    \label{fig:isa:nn}
-\end{figure}
 
 但上述标准的单层ISA有两大缺点：
 \begin{enumerate}
@@ -176,6 +169,13 @@ $\vec{A}$可对应看作一个$m\times 1 \times p \times p \times p$的卷积核
 从而作为一个深度特征提取器来使用。训练时可采取贪心逐层训练的方法，
 在训练底层时使用较小的图像块，随后转换为卷积形式，
 用较大的图像块作为输入并提取特征，在提取出的特征上再训练下一层ISA。
+这种层叠卷积ISA的结构如\figref{isa:stack}所示。
+
+\begin{figure}[H]
+    \addplot{res/isa-stack.png}
+    \caption{ISA及层叠卷积ISA对应的卷积神经网络结构\cite{wu2013unsupervised}}
+    \label{fig:isa:stack}
+\end{figure}
 
 % f}}}
 
@@ -229,7 +229,7 @@ $\vec{A}$可对应看作一个$m\times 1 \times p \times p \times p$的卷积核
 处的元素绘制在\figref{isa:test}中，可以看出ISA能还原出这些随机变量间的内在结构，
 被分在同一组的变量间也有较高的相关性。
 
-\begin{figure}[h!]
+\begin{figure}[H]
     \addplot{res/isa-toyeg.eps}
     \caption{在合成数据上ISA还原出的输入变量的内在关系}
     \label{fig:isa:test}
@@ -252,7 +252,7 @@ $13\times 13 \times 13$，先用PCA把数据降维到$600$维，
 相邻两个检测器属于同一个子空间，可以看到它们的形态相似而在相位上有区别，
 这也表明了一个子空间所对应的特征具有一定的平移不变性。
 
-\begin{figure}[h!]
+\begin{figure}[H]
     {
         \addplot{res/isa-filter.png}
         \caption{在实际数据上用ISA习得的第一层特征检测器}
