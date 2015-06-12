@@ -14,6 +14,7 @@ data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0525-d10000-pca | mtrc-
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0523-d10000/best_training_cost | mtrc-d10000
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0523-d10000-pca | mtrc-d10000-pca-o47
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0529-moregap/best_training_cost | mtrc-mg-d5000
+data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0529-pca-o47 | mtrc-mg-d5000-pca-o47
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0531/best_training_cost | mtrc-d5000
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0531-pca-o44 | mtrc-d5000-pca-o44
 data/cnn/apply_model_on_data.py -c 1024 -m data/cnn/data/0517-adam-smalldata/best_training_cost | mtrc-d800

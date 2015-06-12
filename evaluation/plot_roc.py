@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: plot_roc.py
-# $Date: Tue Jun 09 13:25:00 2015 +0800
+# $Date: Fri Jun 12 10:40:30 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from get_auc import MIN_X, get_auc
@@ -36,10 +36,9 @@ def get_marker_cycler():
 def get_color_cycler():
     # http://tableaufriction.blogspot.ro/2012/11/finally-you-can-use-tableau-data-colors.html
     tableau10 = np.array(
-        [(255, 188, 121), (255, 128, 14), (207, 207, 207),
-         (200, 82, 0), (171, 171, 171), (162, 200, 236),
-         (137, 137, 137), (95, 158, 209), (89, 89, 89),
-         (0, 107, 164)],
+        [(255, 188, 121), (95, 158, 209), (255, 128, 14),
+         (0, 107, 164), (207, 207, 207), (200, 82, 0),
+         (171, 171, 171), (162, 200, 236), (137, 137, 137), (89, 89, 89)],
         dtype=np.float32)
 
     tableau10 *= 0.9 / 255.0
@@ -123,7 +122,7 @@ def main():
                 markevery=0.3, markersize=10,
                 markeredgecolor='none', color=cur_color)
         if not args.no_errbar:
-            ax.fill_between(x, y - yerr, y + yerr, alpha=0.2,
+            ax.fill_between(x, y - yerr, y + yerr, alpha=0.15,
                             edgecolor='none', facecolor=cur_color)
 
 

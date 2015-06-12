@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: get_roc.py
-# $Date: Sun Jun 07 22:49:31 2015 +0800
+# $Date: Fri Jun 12 10:50:52 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import pyximport
@@ -34,14 +34,16 @@ def main():
                         help='plot ROC curve')
     parser.add_argument('-o', '--output',
                         help='write text ROC curve to output')
+    parser.add_argument('--border_dist_stat',
+                        help='write stats of feature dist vs border dist')
     parser.add_argument('match_result', nargs='+',
                         help='point match results of training images '
                         'on this test image')
     parser.add_argument('--dump_dist', help='dump calculated dist to file')
     args = parser.parse_args()
 
-    assert args.output or args.plot,  \
-        'please set a least one of --plot, --output'
+    assert args.output or args.plot or args.border_dist_stat,  \
+        'please set a least one of --plot, --output, --border_dist_stat'
 
     roc = get_roc(args)
     if args.output:

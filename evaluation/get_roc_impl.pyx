@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: get_roc_impl.pyx
-# $Date: Sun Jun 07 23:00:59 2015 +0800
+# $Date: Fri Jun 12 11:29:11 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial
@@ -11,17 +11,28 @@ cimport numpy as np
 
 import os
 import logging
+from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 cdef class ROCEvaluate:
     cdef object _args
     cdef object _output_match_result
 
+    cdef object _border_dist_stat
+    """stats of feature dist vs border dist"""
+
     def __init__(self, args):
         self._args = args
         if args.dump_dist:
             self._output_match_result = PointMatchResult(
                 None, None, None, None, None)
+        else:
+            self._output_match_result = None
+
+        if args.border_dist_stat:
+            self._border_dist_stat = defaultdict(list)
+        else:
+            self._border_dist_stat = None
 
     cdef _calc_single_test_image(self, flist, test_img_name):
         args = self._args
@@ -65,6 +76,9 @@ cdef class ROCEvaluate:
         raw_data = []
         for ptnum in np.argsort(match_dist):
             x, y, z = match_idx[ptnum]
+            if self._border_dist_stat is not None:
+                self._border_dist_stat[border_dist[x, y, z]].append(
+                    match_dist[ptnum])
             xd = x - x % grid_size
             yd = y - y % grid_size
             zd = z - z % grid_size
@@ -75,7 +89,7 @@ cdef class ROCEvaluate:
             is_tp = geo_dist >= min_geo_dist and geo_dist <= max_geo_dist
             raw_data.append((is_tp, match_dist[ptnum]))
 
-            if self._output_match_result:
+            if self._output_match_result is not None:
                 self._output_match_result.idx.append((x, y, z))
                 self._output_match_result.dist.append(match_dist[ptnum])
                 self._output_match_result.geo_dist.append(geo_dist)
@@ -127,9 +141,20 @@ cdef class ROCEvaluate:
             t.geo_dist = np.array(t.geo_dist)
             serial.dump(t, self._args.dump_dist)
 
+        if self._border_dist_stat is not None:
+            self._dump_border_dist_stat()
+
         return self._merge_roc(all_roc)
 
-    def _merge_roc(self, all_roc):
+    cdef _dump_border_dist_stat(self):
+        logger.info('write border dist stats to {}'.format(
+            self._args.border_dist_stat))
+        with open(self._args.border_dist_stat, 'w') as fout:
+            for k, v in sorted(self._border_dist_stat.iteritems()):
+                fout.write('{} {} 0 0 {}\n'.format(
+                    k, np.mean(v), np.std(v)))
+
+    cdef _merge_roc(self, all_roc):
         """:return: merged roc curve: [(top ratio, tp, thresh,
             top ratio std, tp std)]"""
         all_dist = []
