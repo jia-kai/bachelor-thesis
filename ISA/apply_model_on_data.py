@@ -1,12 +1,13 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: apply_model_on_data.py
-# $Date: Sun May 10 22:27:38 2015 +0800
+# $Date: Fri Jun 12 12:22:39 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from nasmia.utils import serial, timed_operation, ProgressReporter
 from nasmia.math.ISA.model import ISAModel
 from nasmia.math.ISA.config import LAYER1_PATCH_SIZE, LAYER0_STRIDE
+from nasmia.math.op import sharedX
 from nasmia.io import ModelEvalOutput
 
 import theano.tensor as T
@@ -63,17 +64,52 @@ def make_fprop(layer0, layer1):
         return y
     return fprop
 
+def calc_raw_output(inp, layer0, layer1):
+    assert inp.ndim == 4 and all(i == LAYER1_PATCH_SIZE for i in inp.shape[1:])
+    inp = np.expand_dims(inp, axis=1)
+    hidv = layer0.fprop_conv(sharedX(inp), stride=LAYER0_STRIDE).eval()
+    assert hidv.ndim == 5 and hidv.shape[2:] == (2, 2, 2)
+    hidv = hidv.reshape(inp.shape[0], layer0.out_chl * 8)
+    return layer1(hidv.T).T
+
+
+def check_output(img, output, layer0, layer1, nr_check):
+    mdl_shp = LAYER1_PATCH_SIZE
+    inp = np.empty(shape=[nr_check] + [mdl_shp] * 3, dtype='float32')
+    loc = []
+    rand = lambda v: np.random.randint(0, img.shape[v] - mdl_shp + 1)
+    for i in inp:
+        x, y, z = map(rand, range(3))
+        i[:] = img[x:x+mdl_shp, y:y+mdl_shp, z:z+mdl_shp]
+        loc.append((x, y, z))
+
+    expected_all = calc_raw_output(inp, layer0, layer1)
+
+    max_err = 0
+    max_loc = None
+    for (x, y, z), expected in zip(loc, expected_all):
+        got = output[:, x, y, z]
+        err = np.abs(got - expected).max()
+        if err > max_err:
+            max_err = err
+            max_loc = (x, y, z)
+    logger.info('err: max={} loc={}'.format(max_err, max_loc))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='convert ISA model to convolution and apply to data',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--l0', required=True, help='layer0 model')
     parser.add_argument('--l1', required=True, help='layer1 model')
+    parser.add_argument('--check', type=int,
+                        help='number of patches to check fprop output')
     parser.add_argument('input')
     parser.add_argument('output')
     args = parser.parse_args()
 
-    fprop = make_fprop(serial.load(args.l0), serial.load(args.l1))
+    layer0, layer1 = map(serial.load, (args.l0, args.l1))
+    fprop = make_fprop(layer0, layer1)
     x = serial.load(args.input)
     logger.info('input shape: {}'.format(x.shape))
     y = fprop(x)
@@ -85,6 +121,9 @@ def main():
         opath += '.pkl'
     serial.dump(ModelEvalOutput(img=x, ftr=y), opath)
     logger.info('result wrote to {}'.format(opath))
+
+    if args.check:
+        check_output(x, y, layer0, layer1, args.check)
 
 if __name__ == '__main__':
     main()

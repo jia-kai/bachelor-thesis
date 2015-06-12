@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # $File: model.py
-# $Date: Sun Apr 05 19:41:04 2015 +0800
+# $Date: Fri Jun 12 12:23:17 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from ..op import sharedX
@@ -28,11 +28,13 @@ class ISAModel(object):
         assert coeff.shape[0] == bias.size
 
     def __call__(self, data, level2=True):
+        """:param data: matrix(feature, nr_data) or vector(feature)"""
         chg_shape = False
         if data.ndim == 1:
             chg_shape = True
             data = data.reshape(-1, 1)
-        assert data.ndim == 2 and data.shape[0] == self.coeff.shape[1]
+        assert data.ndim == 2 and data.shape[0] == self.coeff.shape[1], \
+            'bad data shape: {}'.format(data.shape)
 
         hidv = np.square(self.coeff.dot(data) + self.bias.reshape(-1, 1))
         if level2:

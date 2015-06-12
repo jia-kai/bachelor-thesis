@@ -28,6 +28,8 @@
 ../data/roc/mtrc-mg-d800-l2.txt
 ../data/roc/mtrc-mg-d5000-cos.txt
 ../data/roc/mtrc-mg-d5000-l2.txt
+../data/roc/mtrc-mg-d5000-pca-o47-cos.txt
+../data/roc/mtrc-mg-d5000-pca-o47-l2.txt
 ../data/roc/mtrc-mg-d10000-cos.txt
 ../data/roc/mtrc-mg-d10000-l2.txt
 ../data/roc/mtrc-mg-d10000-pca-cos.txt
