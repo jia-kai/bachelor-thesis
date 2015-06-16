@@ -1,5 +1,5 @@
 # $File: Makefile
-# $Date: Sun May 17 19:42:04 2015 +0800
+# $Date: Mon Jun 15 22:59:59 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 TARGET = main
@@ -10,6 +10,7 @@ PDFDEPS = build $(addprefix build/,$(wildcard *.tex)) \
 all: view
 
 build/$(TARGET).pdf: $(PDFDEPS)
+	make -C trans pdf
 	cd build && latexmk -xelatex -8bit -shell-escape $(TARGET).tex
 
 build/%: %

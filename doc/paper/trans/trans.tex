@@ -1,0 +1,303 @@
+% $File: trans.tex
+% $Date: Tue Jun 16 10:11:40 2015 +0800
+% $Author: jiakai <jia.kai66@gmail.com>
+
+\documentclass[a4paper]{article}
+\usepackage{amsmath,amssymb,amsthm,fontspec,verbatim,graphicx}
+\usepackage[hyperfootnotes=false,colorlinks,linkcolor=black,anchorcolor=black,citecolor=black]{hyperref}
+\usepackage[top=2in, bottom=1.5in, left=1in, right=1in]{geometry}
+
+\newcommand{\addplot}[1]{\centering
+	\includegraphics[width=0.6\paperwidth,height=0.2\paperheight,keepaspectratio]{#1}}
+
+% bib
+\usepackage{biblatex}
+\bibliography{refs.bib}
+\defbibheading{bibliography}{\section*{参考文献}}
+
+% math
+\usepackage{bm}
+\newcommand{\trans}[1]{#1^\intercal}
+\numberwithin{equation}{section}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\dif}{\mathrm{d}}
+\usepackage{mathtools}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+% \textref{marker}{text}
+\newcommand{\textref}[2]{\hyperref[#1]{#2}}
+\newcommand{\figref}[1]{\hyperref[fig:#1]{\figurename~\ref*{fig:#1}}}
+\newcommand{\tabref}[1]{\hyperref[tab:#1]{\tablename~\ref*{tab:#1}}}
+\newcommand{\eqnref}[1]{\hyperref[eqn:#1]{(\ref*{eqn:#1})}}
+\newcommand{\lemref}[1]{\hyperref[lemma:#1]{Lemma~\ref*{lemma:#1}}}
+
+% zhspacing
+\usepackage{zhspacing}
+\zhspacing
+
+\renewcommand{\abstractname}{摘要}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+
+\title{用于大脑磁共振扫描图像柔性配准的非监督深度特征学习}
+\date{}
+\author{Guorong Wu等；翻译：贾开}
+
+\pagenumbering{gobble}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+    在医学图像配准中，建立精确的结构对应关系至关重要。
+    尽管人们为各种配准任务手动设计了很多特征，
+    然而其中可以在任何图像数据上均取得不错效果大的通用方法。
+    尽管也有许多基于学习的方法可以在差异极大的个体间辅助筛选特征以检测对应点，
+    它们通常受限于需要已知的对应关系(常由其它配准方法给出)来进行训练。
+    为了解决这些问题，我们提出使用非监督深度学习的方法来直接学习可高效表达
+    所有观察到的图像块的基滤波器系数。随后，在图像配准中，
+    这些基滤波器检出的系数可以被看作点对应关系的形态学指纹。具体而言，
+    我们构建了一个两层堆叠的卷积网络来寻找对图像块的多层次表示，
+    其中高层特征从底层网络的响应推导出来。在图像配准中，
+    通过把人工设计的特征替换成我们的适应数据的习得特征，
+    我们得到了很好的配准结果，这说明通过使用非监督深度学习得到的适应数据
+    的特征，可以设计出提升图像配准性能的通用方法。
+\end{abstract}
+
+\section{绪论}
+柔性配准在许多神经科学和临床研究中都非常重要，
+用于将个体被试匹配到参考空间\cite{zitova2003image,vercauteren2009diffeomorphic}。
+图像配准的基本原理是通过最大化两图间的特征相似度来解释其结构上的对应关系。
+所以，图像配准常常需要人工设计的特征(如Gabor滤波器)来驱动柔性配准
+\cite{liu2002local}。
+
+然而，这些人工设计的特征的缺陷是它们并不能保证在所有图像数据上效果良好，
+特别是在对应关系检测上。例如，Gabor滤波器的响应就不能被有效用于检测
+脑部磁共振图像中的均匀白质。相应的，人们提出基于学习的方法来在一个巨大的
+特征池中选择最好的特征来刻划每个图像点\cite{ou2011dramms,wu2006learning}。
+通常对特征向量的要求是，它们在对应点上能{\bf (1)}对其它非对应点有足够区分力
+并且{\bf (2)}在所有训练样本上保持一致。随后这些习得的特征通常可以提高配准精度
+和鲁棒性。然而，目前的基于学习的方法要求训练数据提供大量已知对应关系，
+而这通常由某种配准算法提供。所以，除了被先有鸡还是先有蛋的问题困扰，
+这些基于监督学习的方法的性能也常常会被所用的配准方法的精度所限制。
+
+为了解决这些问题，我们希望寻求基于非监督学习直接从图像数据导出的独立的基。
+具体而言，我们受限考虑一个包含所有图像块的特征空间。随后，
+我们学习一组独立的基来表达这些图像块。接下来，用这些基在图像块上导出的系数
+便可被用作进行对应关系检测所需的刻划单点的形态学指纹。
+
+受机器学习领域新近进展的启发，我们使用层叠卷积ISA(Independent Subspace Analysis,
+独立子空间分析)方法\cite{le2011learning}来从脑部磁共振影像中学习层次化的表示。
+概括而言，ISA是ICA(Independent Component Analysis, 独立成分分析)方法的扩展，
+用于给图像识别和模式分类提供基图像\cite{hyvarinen2000emergence}。
+为了解决视频处理中高维数据的问题，Le等人\cite{le2011learning}将层叠和卷积
+\cite{lecun1995convolutional}等深度学习技术用于构建一个各层逐步进行ISA的
+多层卷积神经网络。在我们的应用中，我们使用层叠卷积ISA方法来学习高维3D图像块
+的层次化表达，使得我们可以用层次化的特征表达来建立精确的结构对应关系
+(这不仅包含低层的图像特征，还包含高层从大范围图像块推导出的特征)。
+
+为了展示非监督特征学习在图像配准中的优势，
+我们将我们从60个脑部磁共振图像上习得的特征整合进多通道
+demons\cite{peyrat2010registration}和另一个基于特征的配准方法
+\cite{shen2007image}。通过在含有83个人工标注的区域的IXI数据集上和ADNI数据集上
+进行评测，这两种顶尖水准的配准方法相对于其使用人工设计的特征的版本，
+性能都得到了明显提高。这些结果也给出了使用非监督深度学习得到的层次化特征表示来
+改进图像配准的通用方法。
+
+\section{方法}
+\subsection{动机}
+由于没有可以在所有数据上都有良好性能的通用图像特征，基于学习的方法最近被用于
+学习所有图像点上的最好特征以辅助配准。具体而言，在训练阶段，
+用最新的配准算法把所有样本图像配准到某个模板上。随后，从柔性形变场推出的
+对应关系就被当作真实匹配点对。接下来，在每个点上进行特征选择的过程，
+选出最好的特征以增加匹配点对间的相似度\cite{ou2011dramms}。在应用阶段，
+被试上的每个点上必须提取训练阶段用到的所有特征，随后通过配准用到的每个目标模板点
+上习得的最好特征建立对应关系。
+
+然而，这些基于学习的配准方法有如下局限性：
+\begin{enumerate}
+    \item 用于训练的对应关系可能不精确。\figref{1}的顶行
+        展示了一个典型的老人脑部影像的例子，其中柔性变形过的影像
+        (\figref{1}(c))远远没与模板(\figref{1}(a))匹配好，
+        特别是对脑室而言。所以，学习对精确对应关系检测有意义的特征是很困难的；
+    \item 最好的特征通常只在模板空间里习得。一旦模板发生改变，
+        整个训练过程需要重新开始，十分耗时；
+    \item 在不重新全部训练的情况下，目前的基于学习的方法无法直接引入新的特征；
+    \item 由于计算资源有限，最好的特征组合通常只由几种图像特征组成(
+        如\cite{wu2007learning}中只用了三种特征类型，每种有四个尺度)，
+        这限制了特征的区分力。
+\end{enumerate}
+
+\begin{figure}
+    \addplot{res/fig1.png}
+    \caption{(a-c)比较模板，被试，和形变过的被试。(d-f)模板上一点(红色十字标识)
+        到被试上所有点的特征相似度，(d-e)为人工设计的特征，
+        (f)为非监督学习的特征。}
+    \label{fig:1}
+\end{figure}
+
+为了克服上述局限性，我们提出了如下的非监督学习方法来学习图像块的层次化特征表示。
+
+\subsection{基于独立子空间分析的非监督学习}
+这里，我们用$x^t$表示某个图像块，用长为$L$的列向量表示，即
+$x^t=[x_1^t,\dots,x_L^t]'$。上标$t=\{1,\dots,T\}$表示所有$T$个训练图像中的
+索引编号。在经典的特征提取中，人工设计$N$个滤波器$W=\{w^i\}_{i=1,\dots,N}$
+来从$x^t$中提取特征，其中$w^i$是列向量($w^i=[w_1^i,\dots,w_L^i]$)。
+每个特征可由$x^t$和$w^i$的内积计算，即$s^{t,i}=x^t\odot w^i$。
+
+ISA是一种从图像块$\{x^t\}$中自动学习基滤波器$\{w^i\}$的方法。作为ICA的扩展，
+响应$s^{t,i}$并不要求两两独立，而是被分成若干组，每组被叫做一个独立子空间
+\cite{hyvarinen2000emergence}。于是，组内的响应是不独立的，而组间则不允许有依赖
+关系。所以，相似的特征可以被分到同一组，以实现不变性。我们用矩阵
+$V=[v_{i,j}]_{i=1,\dots,L,j=1,\dots,N}$来代表所有观察到大的响应$s^{t,i}$
+间的子空间结构，其中$v_{i,j}$表示基向量$w^i$是否属于第$j$个子空间。
+这里，$N$代表响应$s^{t,i}$的子空间的维度。需要特别指出，
+ISA训练时矩阵$V$是固定不变的\cite{le2011learning}。
+
+\figref{2}给出了ISA的图形化描述。给出图像块$\{x^t\}$(在\figref{2}(a)的底部
+)，ISA通过求解下式来寻找独立子空间(在\figref{2}中用粉色点表示)，并学习最优的
+$W$(在\figref{2}(a)的中间)：
+\begin{eqnarray}
+    \hat{W} &=& \argmin_W \sum_{t=1}^T\sum_{j=1}^N p_j(x^t;W,V), s.t. WW'=I
+    \label{eqn:1}
+\end{eqnarray}
+其中$p_j(x^t;W,V)=\sqrt{\sum_{i=1}^L v_{i,j}(x^t \odot w^i)^2}$，
+是$x^t$在ISA中的具体响应。
+
+正交性的限制用于确保基滤波器$\{w^i\}$足够多样性。
+带投影的整批梯度下降的方法用于求解\eqnref{1}，
+其不需要对学习速率和收敛条件的的调优\cite{le2011learning}。
+给出优化过的$W$和任意图像块$y$，求解$y$在各个子空间上的响应十分容易，
+即$\xi(y) = [p_j(y;W,V)]_{j=1,\ldots,N}$。注意$\xi(y)$被当作
+在习得的基滤波器$W$下表示某特定图像块$y$的向量系数，
+在配准过程中将被用作$y$的形态学指纹。
+
+\begin{figure}
+    \addplot{res/fig2.png}
+    \caption{对ISA和层叠卷积ISA的图示}
+    \label{fig:2}
+\end{figure}
+
+为了确保精确的对应关系检测，有必要使用多尺度的图像特征，特别是对\figref{1}
+中给出的脑室例子。然而，这也导致了在大图像块上进行特征学习的高维输入问题。
+在这方面，我们采用\figref{le2011learning}中视频数据分析的方法，
+如\figref{2}(b)所示构造两层网络，以便将ISA扩展到大尺度的图像块。
+具体而言，我们先在小尺度图像块上训练第一层ISA。随后，用滑动窗口
+(与第一层的大小相同)在每个大尺度图像块上进行卷积，
+得到一系列有重合部分的小尺度图像块(如\figref{2}(c))所示。
+第一层ISA的响应(\figref{2}(b)中的蓝色三角序列)被合并后用PCA白化
+并被作为第二层输入(\figref{2}(b)中的粉色三角)，用于进一步训练另一个ISA。
+用这种方法，对大尺度图像块大的高层次理解可以由第一层的基滤波器产生的低层图像特征
+所构建。很明显这种层次化的图像块表示完全由数据驱动，所以无需已知的对应关系。
+
+第一层网络从60个脑部磁共振图像中习得的基滤波器如\figref{3}所示，
+其中我们展示2D切片来表示3D滤波器。
+其中大部分看起来像可以检测不同朝向的边缘的Gabor滤波器。
+给出该两层网络，输入图像块$y$将在大尺度上抽取。
+层次化的表示系数$\xi(y)$计算如下：(1) 用滑动窗口法从$y$中抽取一系列有重叠的
+小尺度图像块(\figref{2}(c))；(2) 对每个小图像块计算第一层ISA的响应；
+(3) 合并(2)中的响应并用习得的PCA进一步降维；
+(4) 计算第二层ISA的响应并作为$\xi(y)$层次化表示的系数。
+在配准时，我们在每个点上抽取大尺度图像块并把$\xi(y)$
+用作检测对应关系的形态学指纹。这里，我们使用归一化的交叉相关系数作为两个表示系数
+向量间的相似度度量。我们在\figref{1}(f)中展示所习得特征的性能，其中，
+对模板上的一个点(\figref{1}(a)中红色十字标记)，
+我们可以在甚至有较大脑室的被试上成功找到对应点。其它人工设计的特征，
+不是检测出太多对应关系(如\figref{1}(d)中把整个图像块作为特征向量)，
+就是响应太低并且有很多对应关系无法检出(\figref{1}(e)中的SIFT特征)。
+
+
+\begin{figure}
+    \addplot{res/fig3.png}
+    \caption{第一层网络从60个脑部磁共振图像中习得的基滤波器($13\times 13$)}
+    \label{fig:3}
+\end{figure}
+
+
+
+\subsection{用习得的特征提升柔性图像配准}
+不失一般性，我们展示两种将ISA习得的特征整合进当前顶尖的配准方法的例子。
+首先，我们可以方便地使用多通道demons\cite{peyrat2008registration}，
+只需把每个通道看作$\xi(y)$中的一个元素即可。其次，我们把一种基于特征的配准方法
+HAMMER\cite{shen2007image}\footnote{源代码可在\url{
+http://www.nitrc.org/projects/hammerwml}下载}
+中人工设计的特征向量(即局部亮度直方图)替换成我们习得的
+特征，并且保持柔性配准的优化方法不变。接下来，我们将展示这两种方法用上我们习得的
+特征后配准性能的提升。
+
+
+\section{实验}
+本节中，我们通过评测使用/不使用习得特征的情况下的配准精度来说明非监督学习方法的
+性能。具体而言，我们用了60张ADNI数据集(\url{http://adni.loni.ucla.edu/})中的脑部
+磁共振图像进行训练。对每个图像，我们随机采样约15000个图像块，其中第一、二层的输
+入大小分别为$13\times 13 \times 13$和$21\times 21 \times 21$。第一层习得的基滤波
+器数量和第二层子空间的维度分别为$N=300$和$N=150$。所以，整体而言对每个图像块$y$
+，其形态学指纹$\xi(y)$的维度是$150$。
+
+我们将多通道微分流形demons\cite{vercauteren2009diffeomorphic}和
+HAMMER\cite{shen2007image}作为比较时的基线方法。接下来，我们将习得的特征
+整合进多通道demons的每个通道，同时也替换掉HAMMER中人工设计的特征，
+分别用M+ISA和H+ISA表示。由于PCA也是一种基于计算特征向量的非监督降维方法，
+我们也研究了将PCA降维后的图像块用于多通道demons(M+PCA)和HAMMER(H+PCA)，
+以表现深度学习的更优性能。为了与ISA保留相似的特征维度，我们在$7\times 7 \times
+7$的图像块上进行PCA并保留$>70\%$的能量。
+
+\subsection{IXI数据集上的实验}
+IXI数据集\footnote{\url{http://biomedic.doc.ic.ac.uk/brain-development/index.php?nMain.Datasets}}
+包含30个被试，每个有83个人工标注的ROI。我们用FLS软件包中的FLIRT(
+\url{http://fsl.fmrib.ox.ac.uk})来将所有被试仿射配准到模板空间。接下来，
+分别用以上6中方法配准这些图像。这样，我们可以计算每个ROI的Dice指数，
+以及它们整体的Dice指数。具体而言，demons的整体Dice指数为$78.5\%$，
+M+PCA为$75.2\%$，M+ISA为$79.0\%$，HAMMER为$78.9\%$，
+H+PCA为$75.4\%$，H+ISA为$80.1\%$。\figref{4}也给出了10个典型大脑结构的Dice指数。
+很明显和基线方法相比，习得的特征可以提高配准精度。M+PCA和H+PCA的性能更差，
+因为PCA基于高斯分布假设，并不能对实际复杂的图像块分布建模。
+我们进一步对以上6种配准方法的Dice指数进行了t检验。我们发现M+ISA和H+ISA
+相对其它方法，在IXI数据集上分别在83个ROI中的37个和68个有显著提升($p<0.05$)。
+
+\begin{figure}
+    \addplot{res/fig4.png}
+    \caption{IXI数据集上的10个典型ROI的Dice指数}
+    \label{fig:4}
+\end{figure}
+
+\subsection{ADNI数据集上的实验}
+在这个实验中，我们随机从ADNI数据集中选择的20个磁共振扫描图像(与训练数据不同 )。
+预处理步骤包括颅骨去除、偏置校正和亮度标准化。所有被试图像由FLIRT与模板线性配准
+。之后，我们用6个柔性配准方法将被试图像进一步标准化到模板空间上。首先，
+我们在\tabref{1}中展示6中方法在3个典型组织(脑室、灰质和白质)上的Dice指数，
+其中H+ISA取得了最高Dice指数，与IXI数据集相同。值得注意的是，Demons取得了
+很高的重合比(尽管还是比H+ISA低)，因为其配准由灰度值辅助，
+这也用于本实验中的组织分割(由FSL软件包中的FAST进行)。因此，
+这对于基于特征的配准方法不很公平，尽管H+ISA还是取得最好效果。
+
+\begin{table}
+    \centering
+    \caption{ADNI数据集上VN, GM和WM的Dice指数(单位:\%)}
+    \label{tab:1}
+    \addplot{res/tab1.png}
+\end{table}
+
+另外，由于ADNI也提供了海马体标注，我们进一步比较了使用不同特征的配准方法
+在海马体上的重合率，即我们习得的ISA特征和PCA特征。以HAMMER为例，
+H+ISA与H+PCA和HAMMER相比，整体取得了2.74\%的提高，而前两者性能相近。
+另一方面，M+ISA相比M+PCA和原始的demons分别取得了0.19\%和0.24\%的提高。
+我们也对M+ISA和Demons，以及H+ISA和HAMMER进行了t检验，发现仅有H+ISA
+相对基线方法(HAMMER)有显著提高($p<0.05$)。
+
+\section{结论}
+我们讨论了用非监督学习方法来寻求优化的图像特征以进行柔性配准。具体而言，
+我们构造了层叠卷积ISA网络来从磁共振大脑影像中学习层次化的基滤波器，
+所以习得的基滤波器完全可对全局和局部图像自适应。在引入这些习得的图像特征到
+现有的顶尖配准方法后，我们取得了很有希望的配准结果，证明可以用深度学习
+构建基于层次化和数据驱动的特征的通用配准方法。
+
+\printbibliography
+
+\section*{原文索引}
+\fullcite{wu2013unsupervised}
+
+\end{document}
+
+% vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
+
