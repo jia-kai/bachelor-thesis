@@ -1,5 +1,5 @@
 % $File: trans.tex
-% $Date: Tue Jun 16 10:11:40 2015 +0800
+% $Date: Thu Jun 18 10:57:52 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \documentclass[a4paper]{article}
@@ -11,8 +11,9 @@
 	\includegraphics[width=0.6\paperwidth,height=0.2\paperheight,keepaspectratio]{#1}}
 
 % bib
-\usepackage{biblatex}
-\bibliography{refs.bib}
+\usepackage[defernumbers]{biblatex}
+\DeclareBibliographyCategory{fullcited}
+\addbibresource{refs.bib}
 \defbibheading{bibliography}{\section*{参考文献}}
 
 % math
@@ -292,10 +293,11 @@ H+ISA与H+PCA和HAMMER相比，整体取得了2.74\%的提高，而前两者性�
 现有的顶尖配准方法后，我们取得了很有希望的配准结果，证明可以用深度学习
 构建基于层次化和数据驱动的特征的通用配准方法。
 
-\printbibliography
+\printbibliography[notcategory=fullcited]
 
 \section*{原文索引}
 \fullcite{wu2013unsupervised}
+\addtocategory{fullcited}{wu2013unsupervised}
 
 \end{document}
 

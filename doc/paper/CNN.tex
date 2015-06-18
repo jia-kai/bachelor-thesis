@@ -1,5 +1,5 @@
 % $File: CNN.tex
-% $Date: Fri Jun 12 14:45:03 2015 +0800
+% $Date: Thu Jun 18 21:14:29 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{基于深度卷积神经网络的特征提取\label{chap:CNN}}
@@ -259,7 +259,8 @@ $\augdataset{X_i}$中的所有图像都被分类到第$i$类。
     d(\vec{x}, \vec{y}) &=& 1 -
         \frac{\trans{\vec{x}}\vec{y}}{\abs{\vec{x}}\abs{\vec{y}}} \nonumber \\
     L(\vec{y_1}, \vec{y_2}, \vec{y_3}) &=&
-        \max\left(0,\, d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})
+        \max\left(0,\,
+            d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})
         \right)
     \label{eqn:cnn:mtrc:loss}
 \end{eqnarray}

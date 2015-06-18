@@ -1,0 +1,345 @@
+% $File: nasmia.tex
+% $Date: Thu Jun 18 21:59:19 2015 +0800
+% $Author: jiakai <jia.kai66@gmail.com>
+
+\documentclass {beamer}
+%\usetheme {JuanLesPins}
+\usetheme{Malmoe}
+%\usecolortheme{beaver}
+\usepackage{fontspec,amsmath,amssymb,verbatim,mathtools,tikz}
+
+% chinese
+\usepackage{zhspacing}
+\zhspacing
+%\usepackage[noindent,UTF8]{ctexcap}
+
+% biblatex
+\usepackage{biblatex}
+\bibliography{refs.bib}
+\defbibheading{bibliography}{\section{}}
+\setbeamertemplate{bibliography item}{\insertbiblabel}
+\renewcommand*{\bibfont}{\footnotesize}
+
+% math opr
+\input{mathdef}
+
+% others
+\newcommand{\addgraph}[2]{\begin{center}
+\includegraphics[width=#1\paperwidth]{#2}\end{center}}
+\newcommand{\addtwocolplot}[2]{\centering
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\textwidth,
+            height=0.4\paperheight,keepaspectratio]{#1}
+    \end{minipage}
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=0.9\textwidth,
+            height=0.4\paperheight,keepaspectratio]{#2}
+    \end{minipage}
+}
+\newcommand{\addplottcs}[1]{\begin{center}
+    \includegraphics[width=0.441\textwidth,
+    height=0.4\paperheight,keepaspectratio]{#1}
+\end{center}}
+
+
+\title{基于非监督深度学习的医学影像特征提取研究}
+\subtitle{期末答辩}
+\author {贾开}
+\institute {清华大学}
+\date{\today}
+
+\begin{document}
+\frame[plain]{\titlepage
+    \begin{center}
+        \begin{tabular}{ll}
+            指导老师 & 宋亦旭 \\
+            报告人 &  贾开 \\
+            学号 & 2011011275
+        \end{tabular}
+    \end{center}
+}
+
+\AtBeginSection[]
+{
+    \begin{frame}<beamer>
+        \frametitle{目录}
+        \tableofcontents[currentsection]
+    \end{frame}
+}
+
+
+\begin{frame}{目录}
+    \tableofcontents
+\end{frame}
+
+\section{引言}
+% f{{{
+\subsection{背景介绍}
+
+\begin{frame}{医学影像处理}
+    意义重大，困难重重
+    \begin{enumerate}
+        \item 分辨率不高，
+            如CT的图像矩阵往往只有$512\times 512$\cite{medimging2}；
+        \item 动态范围大，如CT值范围在$[-1000,1000]$Hu之间\cite{medimging2}；
+        \item 来源单一而封闭，需要大型扫描设备，而且涉及患者隐私；
+        \item 由于人体构造、扫描时体位等不同而呈现很大差异性，
+            病变部位则更是千差万别；
+        \item 维度高，一般为3D体数据，或者带时间信息的4D图像。
+    \end{enumerate}
+    \addgraph{0.3}{res/mi-concept.jpg}
+    \tiny{image source:
+        \url{http://en.wikipedia.org/wiki/Medical\_imaging}}
+\end{frame}
+
+\begin{frame}{特征提取}
+    好的特征：\alert{鲁棒性}和\alert{区分力}
+    \begin{enumerate}
+        \item 人工设计：LBP, HOG, SURF, SIFT等，性能有限
+        \item 监督学习：大部分依赖于对匹配点的标注
+        \item 非监督学习：大部分基于概率假设，
+            对特征应具有的鲁棒性和区分力没有显式描述
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{深度学习}
+    \begin{enumerate}
+        \item 数据
+        \item GPU
+        \item Tricks
+    \end{enumerate}
+    基于深度学习的方法已在机器视觉、机器翻译、自然语言处理、
+    语音识别、文字识别等诸多领域取得领先结果。 \\
+    本文主要使用卷积神经网络。
+
+    \addgraph{0.5}{res/alexnet.png}
+    \tiny{image source: \cite{krizhevsky2012imagenet}}
+\end{frame}
+
+\subsection{本文创新点}
+\begin{frame}{本文创新点}
+    \begin{enumerate}
+        \item 层叠卷积ISA\cite{wu2013unsupervised}：
+            GPU的数据并行实现，极大提高了训练速度，
+            相关代码已开源\footnote{
+                \url{https://github.com/jia-kai/bachelor-thesis}}
+        \item 特征评测标准：无需依赖其它任务、无需对应点的标注
+        \item 深度卷积神经网络：将对鲁棒性和区分力的要求显式整合进损失函数，
+            使用多分类和度量学习两种损失函数，辅以详细实验
+    \end{enumerate}
+\end{frame}
+% f}}}
+
+\section{研究内容}
+% f{{{
+\subsection{基于层叠卷积ISA的特征提取}
+\begin{frame}{原始ISA的形式}
+    划分子空间结构，仅要求子空间之间的独立性。
+    $\vec{V}$为待求解的ISA矩阵，$\vec{z_1},\cdots,\vec{z_T}$为白化的输入数据，
+    $S(k)$为第$k$个子空间包含的下标，则优化目标为：
+    \begin{eqnarray}
+        \vec{V}^* &=& \argmax_{\vec{V}}
+                \prod_{t=1}^T \left(
+                \prod_{k=1}^K\prob[k]{e_k} \right) \nonumber \\
+            &=& \argmax_{\vec{V}}
+                \prod_{t=1}^T \left(
+                \prod_{k=1}^K\prob[k]{\sqrt{
+                    \sum_{i\in S(k)}\left(\trans{\vec{v_i}}\vec{z_t}\right)^2}
+                }\right) \nonumber \\
+            \text{subject to} && \trans{\vec{V}}\vec{V}=\vec{I}
+        \label{eqn:isa:1}
+    \end{eqnarray}
+
+    使用ISA从输入$\vec{x}$提取特征$\vec{e}$：
+    \begin{eqnarray}
+        e_k &=&  \sqrt{\sum_{i\in S(k)} s_i^2} \nonumber \\
+        \vec{s} &=& \vec{V}\vec{x}
+        \label{eqn:isa:extract}
+    \end{eqnarray}
+\end{frame}
+
+\begin{frame}{层叠卷积ISA}
+    将4D图像作为输入，矩阵乘转化为卷积，成为两层神经网络
+    \addgraph{0.8}{res/isa-stack.png}
+    {\tiny image from \cite{wu2013unsupervised}}
+\end{frame}
+
+\begin{frame}{实验: toy example}
+    40维独立高斯分布：$\vec{x}=\trans{(x_1,\cdots,x_{40})}$ \\
+    10维独立均匀分布：$\vec{y}=\trans{(y_1, \cdots, y_{10})}$
+    \begin{eqnarray}
+        \vec{z} &=& \trans{(z_1, \cdots, z_{40})} \nonumber \\
+        z_{4i+j} &=& x_{4i+j+1}y_{i+1}
+    \end{eqnarray}
+    \addgraph{0.8}{res/isa-toyeg.eps}
+\end{frame}
+
+\begin{frame}{实验: SLIVER07上习得的滤波器}
+    \addgraph{0.9}{res/isa-filter.png}
+\end{frame}
+
+\begin{frame}{局限性}
+    \begin{enumerate}
+        \item 卷积核大
+        \item 贪心逐层训练
+        \item 层数少
+        \item 完全非监督
+    \end{enumerate}
+\end{frame}
+
+\subsection{基于深度卷积神经网络的特征提取}
+
+\begin{frame}{动机}
+    对于变换集合$\mathcal{T}$，定义
+    \begin{eqnarray}
+        \augdataset{X} &=& \left\{T(\vec{X}): T\in\mathcal{T}\right\}
+            \nonumber \\
+        \augftrset{X} &=& \left\{f(\vec{X};\vec{W}):
+        \vec{X}\in\augdataset{X}\right\} \label{eqn:cnn:augdef}
+    \end{eqnarray}
+
+    要求：
+    \begin{description}
+        \item[鲁棒性] 同一位置的$\vec{X_1}$和$\vec{X_2}$，
+            $\augftrset{X_1}$和$\augftrset{X_2}$类间变化\alert{小}；
+            $\vec{X}\in\mathcal{I}$，$\augftrset{X}$类内变化小
+        \item[区分力] 不同位置的$\vec{X_1}$和$\vec{X_2}$，
+            $\augftrset{X_1}$和$\augftrset{X_2}$类间变化\alert{大}
+    \end{description}
+
+    数据增广本质上是定义$\mathcal{T}$的过程，定义为Gamma校正和仿射变换
+\end{frame}
+
+\begin{frame}{数据增广：Gamma校正}
+    \begin{eqnarray}
+        \vec{y} &=& L + (U-L)\left(\frac{\vec{x}-L}{U-L}\right)^\gamma
+    \end{eqnarray}
+    \addgraph{0.85}{res/gamma.png}
+\end{frame}
+
+\begin{frame}{数据增广：仿射变换}
+    对变换矩阵$\vec{A_0}$做SVD分解：
+    \begin{eqnarray}
+        \vec{A_0} &=&  \vec{U}\vec{\Sigma}\trans{\vec{V}} \nonumber \\
+            &=& \vec{U}\vec{\Sigma}\trans{\vec{U}}\vec{R}
+    \end{eqnarray}
+    \addgraph{0.75}{res/affine-eg.png}
+\end{frame}
+
+\begin{frame}{损失函数：多分类}
+    训练数据：$\vec{X_1},\cdots,\vec{X_N}$ \\
+    监督信号：$\augdataset{X_i}$中的所有图像都被分类到第$i$类
+\end{frame}
+
+\begin{frame}{损失函数：度量学习}
+    不同位置的图像$\vec{X_1}, \vec{X_2}$， \\
+    $\vec{y_i}=f(\vec{X_i}';\vec{W})$，其中 \\
+    $\vec{X_1}' \in \augdataset{X_1}, \vec{X_2}' \in \augdataset{X_1},
+    \vec{X_3}' \in \augdataset{X_2}$
+
+    \begin{eqnarray}
+        d(\vec{x}, \vec{y}) &=& 1 -
+            \frac{\trans{\vec{x}}\vec{y}}{\abs{\vec{x}}\abs{\vec{y}}} \nonumber
+            \\
+        L(\vec{y_1}, \vec{y_2}, \vec{y_3}) &=&
+            \max\left(0,\,
+                d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})
+            \right)
+        \label{eqn:cnn:mtrc:loss}
+    \end{eqnarray}
+\end{frame}
+
+
+\subsection{评测方法}
+\begin{frame}{方法概述}
+    要求以前景掩膜形式提供对某内脏的分割标注
+    \begin{description}
+        \item[边界距离] 某点到标注上脏器边界的距离，脏器内部为正，外部为负
+        \item[参考曲面] 边界距离为$2$的点构成
+        \item[成功匹配] 训练图像的参考曲面上某点，
+            在测试图像上的最近邻的边界距离在$[1, 3]$范围内
+        \item[ROC曲线] 变化特征距离阈值，对应的顶峰比和精确度，
+    \end{description}
+\end{frame}
+
+\begin{frame}{成功匹配点对的抽样观察}
+    \addgraph{0.8}{res/expr-match/pt-patch.png}
+
+    \addgraph{0.8}{res/expr-match/pt-bd-dist.png}
+\end{frame}
+
+\begin{frame}{阈值限制对点分布的影响}
+    所有匹配点，顶峰比为$0.568$，匹配精确度为$48.2\%$
+    \addgraph{0.7}{res/expr-match/48.2-half.png}
+
+    限制阈值，顶峰比为$0.078$，匹配精确度为$80.1\%$。
+    \addgraph{0.7}{res/expr-match/80.1-half.png}
+\end{frame}
+% f}}}
+
+\section{实验结果}
+% f{{{
+
+\subsection{ISA}
+\begin{frame}{ISA}
+    \addgraph{0.65}{res/expr/isa.pdf}
+\end{frame}
+
+\subsection{卷积神经网络}
+\begin{frame}{距离度量}
+    \addtwocolplot{res/expr/clsfy/measure/0.pdf}{res/expr/clsfy/measure/1.pdf}
+    \addtwocolplot{res/expr/mtrc/measure/0-0.pdf}{res/expr/mtrc/measure/1-0.pdf}
+\end{frame}
+
+\begin{frame}{训练数据量}
+    \addplottcs{res/expr/clsfy/datasize.pdf}
+    \addtwocolplot{res/expr/mtrc/datasize/0.pdf}{res/expr/mtrc/datasize/1.pdf}
+\end{frame}
+
+\begin{frame}{度量学习中的$\delta$}
+    \addtwocolplot{res/expr/mtrc/delta/0.pdf}{res/expr/mtrc/delta/1.pdf}
+    \addplottcs{res/expr/mtrc/delta/2.pdf}
+\end{frame}
+
+\begin{frame}{PCA}
+    \addtwocolplot{res/expr/clsfy/pca/0.pdf}{res/expr/clsfy/pca/1.pdf}
+    \addtwocolplot{res/expr/mtrc/pca/0.pdf}{res/expr/mtrc/pca/1.pdf}
+\end{frame}
+
+\begin{frame}{边界距离、特征距离与特征性能}
+    当小的边界距离不对应小的特征距离时，特征距离不反映匹配信心，
+    此时往往性能较差。如ISA的$L_2$、多分类时$5000$数据量等。
+
+    \vspace{1em}
+    \addtwocolplot{res/expr/border-dist-stat/l2.pdf}
+        {res/expr/border-dist-stat/cos.pdf}
+\end{frame}
+
+\subsection{小结}
+\begin{frame}{小结}
+    \begin{enumerate}
+        \item 监督信号加入对鲁棒性和区分力要求的CNN，比完全非监督的ISA好
+        \item 每种方法有对应的恰当的距离度量
+        \item 多分类训练的网络要求恰到好处的训练数据量
+        \item 度量学习的损失函数中需要合适的$\delta$
+        \item 结合PCA一般可提高性能
+    \end{enumerate}
+    最好结果：度量学习+大量数据+PCA+余弦距离
+\end{frame}
+% f}}}
+
+\section{ }
+\subsection{ }
+\frame{\begin{center}\huge{Thanks!}\end{center}}
+
+\section[]{参考文献}
+\begin{frame}[allowframebreaks]{参考文献}
+    \printbibliography
+\end{frame}
+
+\end{document}
+
+% vim: filetype=tex foldmethod=marker foldmarker=f{{{,f}}}
+
