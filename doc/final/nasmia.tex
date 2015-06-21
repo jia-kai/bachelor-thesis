@@ -1,5 +1,5 @@
 % $File: nasmia.tex
-% $Date: Thu Jun 18 21:59:19 2015 +0800
+% $Date: Sun Jun 21 16:10:44 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \documentclass {beamer}
@@ -14,7 +14,7 @@
 %\usepackage[noindent,UTF8]{ctexcap}
 
 % biblatex
-\usepackage{biblatex}
+\usepackage[citestyle=authoryear]{biblatex}
 \bibliography{refs.bib}
 \defbibheading{bibliography}{\section{}}
 \setbeamertemplate{bibliography item}{\insertbiblabel}
@@ -45,7 +45,6 @@
 
 
 \title{基于非监督深度学习的医学影像特征提取研究}
-\subtitle{期末答辩}
 \author {贾开}
 \institute {清华大学}
 \date{\today}
@@ -74,16 +73,15 @@
     \tableofcontents
 \end{frame}
 
-\section{引言}
+\section{研究背景与意义}
 % f{{{
-\subsection{背景介绍}
 
 \begin{frame}{医学影像处理}
     意义重大，困难重重
     \begin{enumerate}
         \item 分辨率不高，
-            如CT的图像矩阵往往只有$512\times 512$\cite{medimging2}；
-        \item 动态范围大，如CT值范围在$[-1000,1000]$Hu之间\cite{medimging2}；
+            如CT的图像矩阵往往只有$512\times 512$；
+        \item 动态范围大，如CT值范围在$[-1000,1000]$Hu之间；
         \item 来源单一而封闭，需要大型扫描设备，而且涉及患者隐私；
         \item 由于人体构造、扫描时体位等不同而呈现很大差异性，
             病变部位则更是千差万别；
@@ -95,7 +93,7 @@
 \end{frame}
 
 \begin{frame}{特征提取}
-    好的特征：\alert{鲁棒性}和\alert{区分力}
+    好的特征：强\alert{鲁棒性}和高\alert{区分度}
     \begin{enumerate}
         \item 人工设计：LBP, HOG, SURF, SIFT等，性能有限
         \item 监督学习：大部分依赖于对匹配点的标注
@@ -105,65 +103,67 @@
 \end{frame}
 
 \begin{frame}{深度学习}
+    关键点：
     \begin{enumerate}
         \item 数据
         \item GPU
         \item Tricks
     \end{enumerate}
-    基于深度学习的方法已在机器视觉、机器翻译、自然语言处理、
-    语音识别、文字识别等诸多领域取得领先结果。 \\
-    本文主要使用卷积神经网络。
-
+    \pause
+    \begin{itemize}
+        \item 基于深度学习的方法已在机器视觉、机器翻译、自然语言处理、
+            语音识别、文字识别等诸多领域取得领先结果
+        \item 本文主要使用卷积神经网络
+    \end{itemize}
     \addgraph{0.5}{res/alexnet.png}
     \tiny{image source: \cite{krizhevsky2012imagenet}}
 \end{frame}
 
-\subsection{本文创新点}
-\begin{frame}{本文创新点}
-    \begin{enumerate}
-        \item 层叠卷积ISA\cite{wu2013unsupervised}：
-            GPU的数据并行实现，极大提高了训练速度，
-            相关代码已开源\footnote{
-                \url{https://github.com/jia-kai/bachelor-thesis}}
-        \item 特征评测标准：无需依赖其它任务、无需对应点的标注
-        \item 深度卷积神经网络：将对鲁棒性和区分力的要求显式整合进损失函数，
-            使用多分类和度量学习两种损失函数，辅以详细实验
-    \end{enumerate}
-\end{frame}
 % f}}}
 
 \section{研究内容}
 % f{{{
 \subsection{基于层叠卷积ISA的特征提取}
+\begin{frame}{ISA:概览}
+    \begin{itemize}
+        \item 原始形式
+        \item 层叠卷积ISA
+        \item 实验
+        \item 局限性
+    \end{itemize}
+\end{frame}
+
 \begin{frame}{原始ISA的形式}
     划分子空间结构，仅要求子空间之间的独立性。
     $\vec{V}$为待求解的ISA矩阵，$\vec{z_1},\cdots,\vec{z_T}$为白化的输入数据，
     $S(k)$为第$k$个子空间包含的下标，则优化目标为：
     \begin{eqnarray}
-        \vec{V}^* &=& \argmax_{\vec{V}}
-                \prod_{t=1}^T \left(
-                \prod_{k=1}^K\prob[k]{e_k} \right) \nonumber \\
-            &=& \argmax_{\vec{V}}
-                \prod_{t=1}^T \left(
-                \prod_{k=1}^K\prob[k]{\sqrt{
-                    \sum_{i\in S(k)}\left(\trans{\vec{v_i}}\vec{z_t}\right)^2}
-                }\right) \nonumber \\
-            \text{subject to} && \trans{\vec{V}}\vec{V}=\vec{I}
+        \vec{V}^* &=& \argmin_{\vec{V}} \sum_{t=1}^T \sum_{k=1}^K
+        \sqrt{\sum_{i\in S(k)}\left(\trans{\vec{v_i}}\vec{z_t}\right)^2}
+        \nonumber \\
+        \text{subject to} && \trans{\vec{V}}\vec{V}=\vec{I}
         \label{eqn:isa:1}
     \end{eqnarray}
 
-    使用ISA从输入$\vec{x}$提取特征$\vec{e}$：
-    \begin{eqnarray}
-        e_k &=&  \sqrt{\sum_{i\in S(k)} s_i^2} \nonumber \\
-        \vec{s} &=& \vec{V}\vec{x}
-        \label{eqn:isa:extract}
-    \end{eqnarray}
+    \only<1>{
+        使用ISA从输入$\vec{x}$提取特征$\vec{e}$：
+        \begin{eqnarray}
+            e_k &=&  \sqrt{\sum_{i\in S(k)} s_i^2} \nonumber \\
+            \vec{s} &=& \vec{V}\vec{x}
+            \label{eqn:isa:extract}
+        \end{eqnarray}
+    }
+
+    \only<2> {
+        \vspace{1em}
+        在$T$上拆分，多GPU并行实现。
+    }
 \end{frame}
 
 \begin{frame}{层叠卷积ISA}
     将4D图像作为输入，矩阵乘转化为卷积，成为两层神经网络
     \addgraph{0.8}{res/isa-stack.png}
-    {\tiny image from \cite{wu2013unsupervised}}
+    {\tiny image source: \cite{wu2013unsupervised}}
 \end{frame}
 
 \begin{frame}{实验: toy example}
@@ -191,7 +191,15 @@
 
 \subsection{基于深度卷积神经网络的特征提取}
 
-\begin{frame}{动机}
+\begin{frame}{CNN:概览}
+    \begin{itemize}
+        \item 鲁棒性与区分力的形式化描述
+        \item 两种损失函数
+        \item 数据增广方法
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{鲁棒性与区分力}
     对于变换集合$\mathcal{T}$，定义
     \begin{eqnarray}
         \augdataset{X} &=& \left\{T(\vec{X}): T\in\mathcal{T}\right\}
@@ -209,14 +217,43 @@
             $\augftrset{X_1}$和$\augftrset{X_2}$类间变化\alert{大}
     \end{description}
 
-    数据增广本质上是定义$\mathcal{T}$的过程，定义为Gamma校正和仿射变换
 \end{frame}
 
-\begin{frame}{数据增广：Gamma校正}
-    \begin{eqnarray}
-        \vec{y} &=& L + (U-L)\left(\frac{\vec{x}-L}{U-L}\right)^\gamma
-    \end{eqnarray}
-    \addgraph{0.85}{res/gamma.png}
+\begin{frame}{损失函数}
+    \begin{description}
+        \item[多分类]
+            训练数据：$\vec{X_1},\cdots,\vec{X_N}$ \\
+            监督信号：$\augdataset{X_i}$中的所有图像都被分类到第$i$类 \\
+            \visible<3>{\alert{全局优化}}
+            \pause
+        \item[度量学习]
+            不同位置的图像$\vec{X_1}, \vec{X_2}$ \\
+            增广： $\vec{X_1}' \in \augdataset{X_1}, \vec{X_2}' \in \augdataset{X_1},
+            \vec{X_3}' \in \augdataset{X_2}$ \\
+            记$\vec{y_i}=f(\vec{X_i}';\vec{W})$
+            \begin{eqnarray}
+                L(\vec{y_1}, \vec{y_2}, \vec{y_3}) &=&
+                    \max\left(0,\,
+                        d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})
+                    \right) \nonumber \\
+                d(\vec{x}, \vec{y}) &=& 1 -
+                    \frac{\trans{\vec{x}}\vec{y}}{\abs{\vec{x}}\abs{\vec{y}}}
+                \label{eqn:cnn:mtrc:loss}
+            \end{eqnarray}
+            \visible<3>{\alert{对数据量无苛刻要求}}
+    \end{description}
+\end{frame}
+
+\begin{frame}{数据增广}
+    数据增广本质上是定义$\mathcal{T}$的过程
+
+    \begin{itemize}
+        \item Gamma校正：
+            \begin{eqnarray}
+                \vec{y} &=& L + (U-L)\left(\frac{\vec{x}-L}{U-L}\right)^\gamma
+            \end{eqnarray}
+        \item 仿射变换
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{数据增广：仿射变换}
@@ -228,39 +265,23 @@
     \addgraph{0.75}{res/affine-eg.png}
 \end{frame}
 
-\begin{frame}{损失函数：多分类}
-    训练数据：$\vec{X_1},\cdots,\vec{X_N}$ \\
-    监督信号：$\augdataset{X_i}$中的所有图像都被分类到第$i$类
-\end{frame}
-
-\begin{frame}{损失函数：度量学习}
-    不同位置的图像$\vec{X_1}, \vec{X_2}$， \\
-    $\vec{y_i}=f(\vec{X_i}';\vec{W})$，其中 \\
-    $\vec{X_1}' \in \augdataset{X_1}, \vec{X_2}' \in \augdataset{X_1},
-    \vec{X_3}' \in \augdataset{X_2}$
-
-    \begin{eqnarray}
-        d(\vec{x}, \vec{y}) &=& 1 -
-            \frac{\trans{\vec{x}}\vec{y}}{\abs{\vec{x}}\abs{\vec{y}}} \nonumber
-            \\
-        L(\vec{y_1}, \vec{y_2}, \vec{y_3}) &=&
-            \max\left(0,\,
-                d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})
-            \right)
-        \label{eqn:cnn:mtrc:loss}
-    \end{eqnarray}
-\end{frame}
-
 
 \subsection{评测方法}
-\begin{frame}{方法概述}
+\begin{frame}{评测方法:概览}
+    \begin{itemize}
+        \item 单点匹配
+        \item ROC曲线
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{单点匹配的判定}
     要求以前景掩膜形式提供对某内脏的分割标注
     \begin{description}
         \item[边界距离] 某点到标注上脏器边界的距离，脏器内部为正，外部为负
         \item[参考曲面] 边界距离为$2$的点构成
-        \item[成功匹配] 训练图像的参考曲面上某点，
-            在测试图像上的最近邻的边界距离在$[1, 3]$范围内
-        \item[ROC曲线] 变化特征距离阈值，对应的顶峰比和精确度，
+        \item[匹配点] 训练图像参考曲面上某点，
+            到某测试图像所有点中特征距离最近的点
+        \item[成功匹配] 匹配点在测试图像上的边界距离在$[1, 3]$范围内
     \end{description}
 \end{frame}
 
@@ -268,6 +289,22 @@
     \addgraph{0.8}{res/expr-match/pt-patch.png}
 
     \addgraph{0.8}{res/expr-match/pt-bd-dist.png}
+\end{frame}
+
+\begin{frame}{绘制ROC曲线}
+    设有$N$个训练图像，每个的参考曲面上采样$T$个点；
+    对测试图像$i$，对所有匹配点按$2\times 2\times 2$方块去重，
+    然后限制特征距离不超过$\theta$：
+    \begin{description}
+        \item[顶峰比$t_i^{(\theta)}$]
+            $\frac{\text{去重后点数}}{NT}$
+        \item[精确度$a_i^{(\theta)}$]
+            $\frac{\text{去重后成功匹配点数}}{\text{去重后点数}}$
+    \end{description}
+    $t^{(\theta)}$、$a^{(\theta)}$
+    分别为
+    $\{t_i^{(\theta)}\}$、$\{a_i^{(\theta)}\}$的均值，
+    遍历$\theta$，绘制$(t^{(\theta)}, a^{(\theta)})$曲线。
 \end{frame}
 
 \begin{frame}{阈值限制对点分布的影响}
@@ -281,6 +318,17 @@
 
 \section{实验结果}
 % f{{{
+
+\begin{frame}{实验内容概览}
+    \begin{itemize}
+        \item 距离度量：cos vs $L_2$
+        \item 训练数据量
+        \item $\delta$ in $\max\left(0,\,
+            d(\vec{y_1}, \vec{y_2}) + \delta - d(\vec{y_1}, \vec{y_3})\right)$
+        \item PCA
+        \item 边界距离与特征距离的关系反映特征性能
+    \end{itemize}
+\end{frame}
 
 \subsection{ISA}
 \begin{frame}{ISA}
@@ -309,7 +357,7 @@
 \end{frame}
 
 \begin{frame}{边界距离、特征距离与特征性能}
-    当小的边界距离不对应小的特征距离时，特征距离不反映匹配信心，
+    当小的边界距离不对应小的特征距离时，特征距离不反映匹配置信度，
     此时往往性能较差。如ISA的$L_2$、多分类时$5000$数据量等。
 
     \vspace{1em}
@@ -330,11 +378,53 @@
 \end{frame}
 % f}}}
 
+\section{总结}
+\begin{frame}{主要工作及创新点}
+    \begin{enumerate}
+        \item 层叠卷积ISA：
+            GPU的数据并行实现，极大提高了训练速度
+            \footnote{相关代码已开源
+                \url{https://github.com/jia-kai/bachelor-thesis}}
+        \item 深度卷积神经网络：将对鲁棒性和区分力的要求显式整合进损失函数，
+            使用多分类和度量学习两种损失函数，辅以详细实验
+        \item 将3D深度卷积神经网络用于医学影像，证明其在特征提取方面的优势
+        \item 特征评测标准：无需依赖其它任务、无需对应点的标注
+    \end{enumerate}
+\end{frame}
+
 \section{ }
 \subsection{ }
 \frame{\begin{center}\huge{Thanks!}\end{center}}
 
 \section[]{参考文献}
+
+\nocite{bay2006surf}
+\nocite{bengio2009learning}
+\nocite{bengio2013representation}
+\nocite{bergstra+al:2010-scipy}
+\nocite{dalal2005histograms}
+\nocite{dosovitskiy2014discriminative}
+\nocite{he2015delving}
+\nocite{heimann2009comparison}
+\nocite{hinton2015distilling}
+\nocite{hornik1989multilayer}
+\nocite{hyvarinen2000emergence}
+\nocite{hyvarinen2009natural}
+\nocite{kingma2014adam}
+\nocite{krizhevsky2012imagenet}
+\nocite{kuipers1999quaternions}
+\nocite{le2011learning}
+\nocite{lecun1998gradient}
+\nocite{lowe1999object}
+\nocite{medimging2}
+\nocite{ojala1994performance}
+\nocite{peyrat2010registration}
+\nocite{schroff2015facenet}
+\nocite{scovanner20073}
+\nocite{shen2002hammer}
+\nocite{sutskever2013importance}
+\nocite{wu2013unsupervised}
+
 \begin{frame}[allowframebreaks]{参考文献}
     \printbibliography
 \end{frame}
