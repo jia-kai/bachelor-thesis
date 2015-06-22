@@ -1,5 +1,5 @@
 % $File: nasmia.tex
-% $Date: Sun Jun 21 16:10:44 2015 +0800
+% $Date: Mon Jun 22 14:54:21 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \documentclass {beamer}
@@ -135,7 +135,8 @@
 
 \begin{frame}{原始ISA的形式}
     划分子空间结构，仅要求子空间之间的独立性。
-    $\vec{V}$为待求解的ISA矩阵，$\vec{z_1},\cdots,\vec{z_T}$为白化的输入数据，
+    $\vec{V}$为待求解的ISA矩阵，$\vec{z_1},\cdots,\vec{z_T}$
+    为\alert{白化}的输入数据，
     $S(k)$为第$k$个子空间包含的下标，则优化目标为：
     \begin{eqnarray}
         \vec{V}^* &=& \argmin_{\vec{V}} \sum_{t=1}^T \sum_{k=1}^K
@@ -156,7 +157,7 @@
 
     \only<2> {
         \vspace{1em}
-        在$T$上拆分，多GPU并行实现。
+        在$T$上拆分，多GPU\alert{并行实现}。
     }
 \end{frame}
 
@@ -387,7 +388,7 @@
                 \url{https://github.com/jia-kai/bachelor-thesis}}
         \item 深度卷积神经网络：将对鲁棒性和区分力的要求显式整合进损失函数，
             使用多分类和度量学习两种损失函数，辅以详细实验
-        \item 将3D深度卷积神经网络用于医学影像，证明其在特征提取方面的优势
+        \item 用深度神经网络分析胸腹腔医学影像，并实验证明其在特征提取方面的优势
         \item 特征评测标准：无需依赖其它任务、无需对应点的标注
     \end{enumerate}
 \end{frame}

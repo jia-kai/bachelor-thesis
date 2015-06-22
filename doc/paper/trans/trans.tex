@@ -1,11 +1,12 @@
 % $File: trans.tex
-% $Date: Thu Jun 18 10:57:52 2015 +0800
+% $Date: Mon Jun 22 17:27:27 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \documentclass[a4paper]{article}
 \usepackage{amsmath,amssymb,amsthm,fontspec,verbatim,graphicx}
 \usepackage[hyperfootnotes=false,colorlinks,linkcolor=black,anchorcolor=black,citecolor=black]{hyperref}
 \usepackage[top=2in, bottom=1.5in, left=1in, right=1in]{geometry}
+\usepackage{relsize}
 
 \newcommand{\addplot}[1]{\centering
 	\includegraphics[width=0.6\paperwidth,height=0.2\paperheight,keepaspectratio]{#1}}
@@ -36,6 +37,7 @@
 % zhspacing
 \usepackage{zhspacing}
 \zhspacing
+\linespread{1.4}
 
 \renewcommand{\abstractname}{摘要}
 \renewcommand{\figurename}{图}
@@ -48,6 +50,7 @@
 \pagenumbering{gobble}
 
 \begin{document}
+\relscale{1.2}
 \maketitle
 \begin{abstract}
     在医学图像配准中，建立精确的结构对应关系至关重要。
@@ -181,7 +184,7 @@ $W$(在\figref{2}(a)的中间)：
 
 为了确保精确的对应关系检测，有必要使用多尺度的图像特征，特别是对\figref{1}
 中给出的脑室例子。然而，这也导致了在大图像块上进行特征学习的高维输入问题。
-在这方面，我们采用\figref{le2011learning}中视频数据分析的方法，
+在这方面，我们采用\cite{le2011learning}中视频数据分析的方法，
 如\figref{2}(b)所示构造两层网络，以便将ISA扩展到大尺度的图像块。
 具体而言，我们先在小尺度图像块上训练第一层ISA。随后，用滑动窗口
 (与第一层的大小相同)在每个大尺度图像块上进行卷积，

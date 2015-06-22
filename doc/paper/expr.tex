@@ -1,5 +1,5 @@
 % $File: expr.tex
-% $Date: Sun Jun 21 15:54:56 2015 +0800
+% $Date: Mon Jun 22 17:08:59 2015 +0800
 % $Author: jiakai <jia.kai66@gmail.com>
 
 \chapter{评测方法与实验\label{chap:expr}}
@@ -414,12 +414,14 @@ ROC曲线应该是下降曲线；
 方法名包括ISA、clsfy、mtrc，分别代表层叠卷积ISA、
 基于多分类或度量学习训练的深度卷积神经网络。
 对于后两种方法，还有如下额外参数：
-\begin{description}
-    \item[d$N$] 表示训练数据量为从每个被试上随机采样$N$个图像块
-    \item[mg] 表示基于度量学习的方法使用了$\delta=0.65$
-    \item[pca] 表示使用了PCA代替最后一层全连接
-    \item[o$N$] 表示最终特征维度不是$50$维，而是$N$维
-\end{description}
+\begin{addmargin}{\parindent}
+    \begin{description}
+        \item[d$N$] 表示训练数据量为从每个被试上随机采样$N$个图像块
+        \item[mg] 表示基于度量学习的方法使用了$\delta=0.65$
+        \item[pca] 表示使用了PCA代替最后一层全连接
+        \item[o$N$] 表示最终特征维度不是$50$维，而是$N$维
+    \end{description}
+\end{addmargin}
 
 我们将各类方法中，结果最好的ROC曲线共同绘制在\figref{expr:curve:all}里，
 以便比较。为了便于观察，该图中没有绘制方差范围。
@@ -432,16 +434,18 @@ ROC曲线应该是下降曲线；
 
 另外，我们将所有实验结果的一些统计数据放在\tabref{expr:all}中。
 其中括号内标注的是按该列统计值的排名，前三名加粗标注。
-\begin{longtable}{l|l|l|l|l|l}
+\begin{table}
     \caption{全部实验结果}
-    \label{tab:expr:all} \\
-    \tabtop
-    {\heiti 名称} & {\heiti AUC} & {\heiti 平均精确度} & {\heiti 最大顶峰比} &
-        {\heiti 最小精确度} & {\heiti 最大精确度} \\
-    \tabmid
-    \input{res/expr/stat.tex}
-    \tabbottom
-\end{longtable}
+    \label{tab:expr:all}
+    \begin{tabular}{l|l|l|l|l|l}
+        \tabtop
+        {\heiti 名称} & {\heiti AUC} & {\heiti 平均精确度} & {\heiti 最大顶峰比} &
+            {\heiti 最小精确度} & {\heiti 最大精确度} \\
+        \tabmid
+        \input{res/expr/stat.tex}
+        \tabbottom
+    \end{tabular}
+\end{table}
 % f}}}
 
 \section{小结与讨论\label{sec:expr:discuss}}

@@ -1,5 +1,5 @@
 # $File: Makefile
-# $Date: Mon Mar 09 20:38:41 2015 +0800
+# $Date: Mon Jun 22 14:49:04 2015 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 TARGET = nasmia
@@ -19,7 +19,7 @@ build:
 	mkdir $@
 
 view: build/$(TARGET).pdf
-	evince build/$(TARGET).pdf
+	okular build/$(TARGET).pdf
 
 rebuild: clean build/$(TARGET).pdf
 
